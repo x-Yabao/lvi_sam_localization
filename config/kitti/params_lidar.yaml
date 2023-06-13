@@ -45,14 +45,19 @@ odometrySurfLeafSize: 0.4                     # default: 0.4 - outdoor, 0.2 - in
 mappingCornerLeafSize: 0.2                    # default: 0.2 - outdoor, 0.1 - indoor
 mappingSurfLeafSize: 0.4                      # default: 0.4 - outdoor, 0.2 - indoor
 
+# robot motion constraint (in case you are using a 2D robot)
+z_tollerance: 1000                            # meters
+rotation_tollerance: 1000                     # radians
+
 # CPU Params
 numberOfCores: 4                              # number of cores for mapping optimization
-mappingProcessInterval: 0.0  #0.15                  # seconds, regulate mapping frequency
+mappingProcessInterval: 0.15                  # seconds, regulate mapping frequency
 
-# Surrounding map （位姿追踪参数）
+# Surrounding map
+surroundingkeyframeAddingDistThreshold: 1.0   # meters, regulate keyframe adding threshold
+surroundingkeyframeAddingAngleThreshold: 0.2  # radians, regulate keyframe adding threshold
 surroundingKeyframeDensity: 2.0               # （对位姿追踪时提取的局部地图进行下采样）meters, downsample surrounding keyframe poses   
 surroundingKeyframeSearchRadius: 50.0         # （位姿追踪时提取的局部地图）meters, within n meters scan-to-map optimization (when loop closure disabled)
-#locationFitnessScore: 0.5                     #  (位姿追踪时点云配准时的阈值)
 
 # Loop closure
 loopClosureEnableFlag: true

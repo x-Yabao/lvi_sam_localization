@@ -47,13 +47,19 @@ int surfFeatureMinValidNum;
 // voxel filter paprams
 float odometrySurfLeafSize;
 float mappingCornerLeafSize;
-float mappingSurfLeafSize ;
+float mappingSurfLeafSize;
+
+// robot motion constraint
+float z_tollerance;
+float rotation_tollerance;
 
 // CPU Params
 int numberOfCores;
 double mappingProcessInterval;
 
 // Surrounding map
+float surroundingkeyframeAddingDistThreshold;
+float surroundingkeyframeAddingAngleThreshold;
 float surroundingKeyframeDensity;
 float surroundingKeyframeSearchRadius;
 
@@ -170,9 +176,14 @@ void readLidarParameters()
     ros::param::get("mappingCornerLeafSize", mappingCornerLeafSize);
     ros::param::get("mappingSurfLeafSize", mappingSurfLeafSize);
 
+    ros::param::get("z_tollerance", z_tollerance);
+    ros::param::get("rotation_tollerance", rotation_tollerance);
+
     ros::param::get("numberOfCores", numberOfCores);
     ros::param::get("mappingProcessInterval", mappingProcessInterval);
 
+    ros::param::get("surroundingkeyframeAddingDistThreshold", surroundingkeyframeAddingDistThreshold);
+    ros::param::get("surroundingkeyframeAddingAngleThreshold", surroundingkeyframeAddingAngleThreshold);
     ros::param::get("surroundingKeyframeDensity", surroundingKeyframeDensity);
     ros::param::get("surroundingKeyframeSearchRadius", surroundingKeyframeSearchRadius);
 

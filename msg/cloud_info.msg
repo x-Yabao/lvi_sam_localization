@@ -33,3 +33,6 @@ sensor_msgs/PointCloud2 cloud_surface   # extracted surface feature
 # image
 int64 imageAvailable
 sensor_msgs/Image image
+
+# Preintegration reset ID
+int64 imuPreintegrationResetId

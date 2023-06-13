@@ -110,11 +110,17 @@ extern float odometrySurfLeafSize;
 extern float mappingCornerLeafSize;
 extern float mappingSurfLeafSize ;
 
+// robot motion constraint
+extern float z_tollerance;
+extern float rotation_tollerance;
+
 // CPU Params
 extern int numberOfCores;
 extern double mappingProcessInterval;
 
 // Surrounding map
+extern float surroundingkeyframeAddingDistThreshold;
+extern float surroundingkeyframeAddingAngleThreshold;
 extern float surroundingKeyframeDensity;
 extern float surroundingKeyframeSearchRadius;
 

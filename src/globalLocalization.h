@@ -76,6 +76,8 @@ public:
     Values isamCurrentEstimate;
     Eigen::MatrixXd poseCovariance;
 
+    ros::NodeHandle nh;
+
     ros::Publisher pubLaserCloudSurround;
     ros::Publisher pubOdomAftMappedROS;
     ros::Publisher pubKeyPoses;
