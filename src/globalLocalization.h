@@ -196,6 +196,7 @@ public:
         Initializing,
         Initialized
     };
+    
     InitializedFlag initializedFlag;
 
     geometry_msgs::PoseStamped poseOdomToMap;

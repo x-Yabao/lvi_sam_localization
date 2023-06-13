@@ -1,11 +1,10 @@
 #include "globalLocalization.h"
 
 std::string savePCDDirectory;
-bool useImuHeadingInitialization;
-std::string gpsTopic;
+
 mapOptimization::mapOptimization()
 {
-//std::cout << "come in" << std::endl;
+    //std::cout << "come in" << std::endl;
     ISAM2Params parameters;
     parameters.relinearizeThreshold = 0.1;
     parameters.relinearizeSkip = 1;
@@ -18,7 +17,8 @@ mapOptimization::mapOptimization()
 
     subLaserCloudInfo = nh.subscribe<lvi_sam_localization::cloud_info>("lio_sam/feature/cloud_info", 10, &mapOptimization::laserCloudInfoHandler, this, ros::TransportHints().tcpNoDelay());
     subGPS = nh.subscribe<nav_msgs::Odometry> (gpsTopic, 200, &mapOptimization::gpsHandler, this, ros::TransportHints().tcpNoDelay());
-//std::cout << "come in2" << std::endl;
+    
+    //std::cout << "come in2" << std::endl;
     //added ******************by gc
     // 从rviz获取粗位姿
     subIniPoseFromRviz = nh.subscribe("/initialpose", 8, &mapOptimization::initialpose_callback, this);
@@ -41,15 +41,15 @@ mapOptimization::mapOptimization()
     downSizeFilterSurf.setLeafSize(mappingSurfLeafSize, mappingSurfLeafSize, mappingSurfLeafSize);
     downSizeFilterICP.setLeafSize(mappingSurfLeafSize, mappingSurfLeafSize, mappingSurfLeafSize);
     downSizeFilterSurroundingKeyPoses.setLeafSize(surroundingKeyframeDensity, surroundingKeyframeDensity, surroundingKeyframeDensity); // for surrounding key poses of scan-to-map optimization
-//std::cout << "come in3" << std::endl;
-
+    
+    //std::cout << "come in3" << std::endl;
     allocateMemory();
 }
 
 void mapOptimization::allocateMemory()
 {
-    cloudGlobalMap.reset(new pcl::PointCloud<PointType>());//addded by gc
-    cloudGlobalMapDS.reset(new pcl::PointCloud<PointType>());//added
+    cloudGlobalMap.reset(new pcl::PointCloud<PointType>());             //addded by gc
+    cloudGlobalMapDS.reset(new pcl::PointCloud<PointType>());           //addded by gc
     cloudScanForInitialize.reset(new pcl::PointCloud<PointType>());
     resetLIO();
     //added by gc
@@ -61,9 +61,10 @@ void mapOptimization::allocateMemory()
         tranformOdomToWorld[i] = 0;
     }
     initializedFlag = NonInitialized;
-    cloudGlobalLoad();//added by gc
+    cloudGlobalLoad();      
     //added by gc
 }
+
 void mapOptimization::resetLIO()
 {
     cloudKeyPoses3D.reset(new pcl::PointCloud<PointType>());
@@ -805,6 +806,7 @@ void mapOptimization::scan2MapOptimization()
         ROS_WARN("Not enough features! Only %d edge and %d planar features available.", laserCloudCornerLastDSNum, laserCloudSurfLastDSNum);
     }
 }
+
 //gc: interpolate the roll and pitch angle using the IMU measurement and Lidar calculation
 void mapOptimization::transformUpdate()
 {
@@ -887,8 +889,6 @@ void mapOptimization::addOdomFactor()
     }
 }
 
-
-
 void mapOptimization::saveKeyFramesAndFactor()
 {
     //gc: judge whther should generate key pose
@@ -938,10 +938,8 @@ void mapOptimization::saveKeyFramesAndFactor()
     //change-3
     /*added    gc*/
     mtxWin.lock();
-//std::cout <<"in saveKeyFramesAndFactor(): the size of cloudKeyPoses3D is: " << cloudKeyPoses3D->points.size() << std::endl;
+    //std::cout <<"in saveKeyFramesAndFactor(): the size of cloudKeyPoses3D is: " << cloudKeyPoses3D->points.size() << std::endl;
     
-    
-        
     win_cloudKeyPoses3D.push_back(thisPose3D);
     win_cloudKeyPoses6D.push_back(thisPose6D);
     if(win_cloudKeyPoses3D.size() > winSize)
@@ -978,12 +976,10 @@ void mapOptimization::saveKeyFramesAndFactor()
     surfCloudKeyFrames.push_back(thisSurfKeyFrame);
 
     //change-4
-    /*added    gc*/
-
-    
-        win_cornerCloudKeyFrames.push_back(thisCornerKeyFrame);
-        win_surfCloudKeyFrames.push_back(thisSurfKeyFrame);
-        if(win_cornerCloudKeyFrames.size() > winSize)
+    /*added gc*/
+    win_cornerCloudKeyFrames.push_back(thisCornerKeyFrame);
+    win_surfCloudKeyFrames.push_back(thisSurfKeyFrame);
+    if(win_cornerCloudKeyFrames.size() > winSize)
     {
         win_cornerCloudKeyFrames.erase(win_cornerCloudKeyFrames.begin());
         win_surfCloudKeyFrames.erase(win_surfCloudKeyFrames.begin());

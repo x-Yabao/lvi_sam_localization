@@ -68,6 +68,13 @@
 extern std::string pointCloudTopic;
 extern std::string imuTopic;
 extern std::string odomTopic;
+extern std::string gpsTopic;
+
+// GPS Settings
+extern bool useImuHeadingInitialization;
+extern bool useGpsElevation;
+extern float gpsCovThreshold;
+extern float poseCovThreshold;
 
 // Frames
 extern std::string lidarFrame;

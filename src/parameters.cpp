@@ -7,6 +7,13 @@
 std::string pointCloudTopic;
 std::string imuTopic;
 std::string odomTopic;
+std::string gpsTopic;
+
+// GPS Settings
+bool useImuHeadingInitialization;
+bool useGpsElevation;
+float gpsCovThreshold;
+float poseCovThreshold;
 
 // Frames
 std::string lidarFrame;
@@ -139,6 +146,12 @@ void readLidarParameters()
     ros::param::get("pointCloudTopic", pointCloudTopic);
     ros::param::get("imuTopic", imuTopic);
     ros::param::get("odomTopic", odomTopic);
+    ros::param::get("gpsTopic", gpsTopic);
+
+    ros::param::get("useImuHeadingInitialization", useImuHeadingInitialization);
+    ros::param::get("useGpsElevation", useGpsElevation);
+    ros::param::get("gpsCovThreshold", gpsCovThreshold);
+    ros::param::get("poseCovThreshold", poseCovThreshold);
 
     ros::param::get("lidarFrame", lidarFrame);
     ros::param::get("baselinkFrame", baselinkFrame);
