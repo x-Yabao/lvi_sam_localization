@@ -78,8 +78,8 @@ add_library(slam SHARED
   ${PROJECT_SOURCE_DIR}/src/parameters.cpp
   ${PROJECT_SOURCE_DIR}/src/imageProjection.cpp
   ${PROJECT_SOURCE_DIR}/src/featureExtraction.cpp
-  ${PROJECT_SOURCE_DIR}/src/mapOptimization.cpp
   ${PROJECT_SOURCE_DIR}/src/imuPreintegration.cpp
+  ${PROJECT_SOURCE_DIR}/src/globalLocalization.cpp
   ${PROJECT_SOURCE_DIR}/src/utility/utility.cpp
   ${PROJECT_SOURCE_DIR}/src/information/SysInfo.cpp
   # ${PROJECT_SOURCE_DIR}/src/information/LocaInfo.cpp
@@ -105,14 +105,19 @@ add_executable(featureExtractionNode examples/node/featureExtractionNode.cpp)
 add_dependencies(featureExtractionNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(featureExtractionNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS})
 
-add_executable(mapOptimizationNode examples/node/mapOptimizationNode.cpp)
-add_dependencies(mapOptimizationNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
-target_compile_options(mapOptimizationNode PRIVATE ${OpenMP_CXX_FLAGS})
-target_link_libraries(mapOptimizationNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS} ${OpenMP_CXX_FLAGS})
-
 add_executable(imuPreintegrationNode examples/node/imuPreintegrationNode.cpp)
 add_dependencies(imuPreintegrationNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(imuPreintegrationNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS})
+
+#add_executable(mapOptimizationNode examples/node/mapOptimizationNode.cpp)
+#add_dependencies(mapOptimizationNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+#target_compile_options(mapOptimizationNode PRIVATE ${OpenMP_CXX_FLAGS})
+#target_link_libraries(mapOptimizationNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS} ${OpenMP_CXX_FLAGS})
+
+#add_executable(mapOptimizationNode examples/node/mapOptimizationNode.cpp)
+#add_dependencies(mapOptimizationNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+#target_compile_options(mapOptimizationNode PRIVATE ${OpenMP_CXX_FLAGS})
+#target_link_libraries(mapOptimizationNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS} ${OpenMP_CXX_FLAGS})
 
 add_executable(sysInfoNode examples/node/sysInfoNode.cpp)
 add_dependencies(sysInfoNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
