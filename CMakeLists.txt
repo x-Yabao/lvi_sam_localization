@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(lvi_sam_location_ros)
+project(lvi_sam_localization)
 
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_STANDARD 14)
@@ -97,27 +97,27 @@ add_library(slam SHARED
 )
 
 
-add_executable(imageProjectionNode examples/ros/imageProjectionNode.cpp)
+add_executable(imageProjectionNode examples/node/imageProjectionNode.cpp)
 add_dependencies(imageProjectionNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(imageProjectionNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS})
 
-add_executable(featureExtractionNode examples/ros/featureExtractionNode.cpp)
+add_executable(featureExtractionNode examples/node/featureExtractionNode.cpp)
 add_dependencies(featureExtractionNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(featureExtractionNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS})
 
-add_executable(mapOptimizationNode examples/ros/mapOptimizationNode.cpp)
+add_executable(mapOptimizationNode examples/node/mapOptimizationNode.cpp)
 add_dependencies(mapOptimizationNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_compile_options(mapOptimizationNode PRIVATE ${OpenMP_CXX_FLAGS})
 target_link_libraries(mapOptimizationNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS} ${OpenMP_CXX_FLAGS})
 
-add_executable(imuPreintegrationNode examples/ros/imuPreintegrationNode.cpp)
+add_executable(imuPreintegrationNode examples/node/imuPreintegrationNode.cpp)
 add_dependencies(imuPreintegrationNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(imuPreintegrationNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS})
 
-add_executable(sysInfoNode examples/ros/sysInfoNode.cpp)
+add_executable(sysInfoNode examples/node/sysInfoNode.cpp)
 add_dependencies(sysInfoNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(sysInfoNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS})
 
-add_executable(tunningNode examples/ros/tunningNode.cpp)
+add_executable(tunningNode examples/node/tunningNode.cpp)
 add_dependencies(tunningNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(tunningNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS})

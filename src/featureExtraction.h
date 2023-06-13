@@ -2,7 +2,7 @@
 
 #include "parameters.h"
 #include "utility/utility.h"
-#include "lvi_sam_location_ros/cloud_info.h"
+#include "lvi_sam_localization/cloud_info.h"
 
 struct smoothness_t{ 
     float value;
@@ -20,7 +20,7 @@ class FeatureExtraction
 public:
     FeatureExtraction();
     void initializationValue(); 
-    void laserCloudInfoHandler(const lvi_sam_location_ros::cloud_infoConstPtr& msgIn);
+    void laserCloudInfoHandler(const lvi_sam_localization::cloud_infoConstPtr& msgIn);
     void calculateSmoothness();
     void markOccludedPoints();
     void extractFeatures();
@@ -42,7 +42,7 @@ private:
 
     pcl::VoxelGrid<PointType> downSizeFilter;           // 对面点进行下采样，因为面点很多
 
-    lvi_sam_location_ros::cloud_info cloudInfo;                      // 点云信息
+    lvi_sam_localization::cloud_info cloudInfo;                      // 点云信息
     std_msgs::Header cloudHeader;                       // ROS消息头
 
     std::vector<smoothness_t> cloudSmoothness;          // 记录每一个点的曲率和原索引

@@ -2,7 +2,7 @@
 
 #include "parameters.h"
 #include "utility/utility.h"
-#include "lvi_sam_location_ros/cloud_info.h"
+#include "lvi_sam_localization/cloud_info.h"
 
 const int queueLength = 2000;   // 存储一帧激光数据之间的IMU数据的队列长度
 
@@ -75,7 +75,7 @@ private:
     float odomIncreY;                                   // 通过imu里程计得到的帧起始和结束在y方向上的相对运动
     float odomIncreZ;                                   // 通过imu里程计得到的帧起始和结束在z方向上的相对运动
 
-    lvi_sam_location_ros::cloud_info cloudInfo;         // 点云信息
+    lvi_sam_localization::cloud_info cloudInfo;         // 点云信息
     double timeScanCur;                                 // 当前帧的起始时间
     double timeScanEnd;                                 // 当前帧的结束时间
     std_msgs::Header cloudHeader;      

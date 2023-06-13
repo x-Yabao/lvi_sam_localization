@@ -2,9 +2,9 @@
 
 FeatureExtraction::FeatureExtraction()
 {
-    subLaserCloudInfo = nh.subscribe<lvi_sam_location_ros::cloud_info>("lio_sam/deskew/cloud_info", 1, &FeatureExtraction::laserCloudInfoHandler, this, ros::TransportHints().tcpNoDelay());
+    subLaserCloudInfo = nh.subscribe<lvi_sam_localization::cloud_info>("lio_sam/deskew/cloud_info", 1, &FeatureExtraction::laserCloudInfoHandler, this, ros::TransportHints().tcpNoDelay());
 
-    pubLaserCloudInfo = nh.advertise<lvi_sam_location_ros::cloud_info> ("lio_sam/feature/cloud_info", 1);
+    pubLaserCloudInfo = nh.advertise<lvi_sam_localization::cloud_info> ("lio_sam/feature/cloud_info", 1);
     pubCornerPoints = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/feature/cloud_corner", 1);
     pubSurfacePoints = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/feature/cloud_surface", 1);
     
@@ -27,7 +27,7 @@ void FeatureExtraction::initializationValue()
 }
 
 // 订阅上一个结点的消息
-void FeatureExtraction::laserCloudInfoHandler(const lvi_sam_location_ros::cloud_infoConstPtr& msgIn)
+void FeatureExtraction::laserCloudInfoHandler(const lvi_sam_localization::cloud_infoConstPtr& msgIn)
 {
     cloudInfo = *msgIn;             // new cloud info
     cloudHeader = msgIn->header;    // new cloud header

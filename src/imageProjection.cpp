@@ -9,7 +9,7 @@ ImageProjection::ImageProjection():deskewFlag(0)
     subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>(pointCloudTopic, 5, &ImageProjection::cloudHandler, this, ros::TransportHints().tcpNoDelay());
 
     pubExtractedCloud = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/deskew/cloud_deskewed", 1);      // 发布去畸变后的点云
-    pubLaserCloudInfo = nh.advertise<lvi_sam_location_ros::cloud_info>("lio_sam/deskew/cloud_info", 1);
+    pubLaserCloudInfo = nh.advertise<lvi_sam_localization::cloud_info>("lio_sam/deskew/cloud_info", 1);
     pubEnvDensityInfo = nh.advertise<std_msgs::String>("info/env_density", 5);
     pubEnvDensityCloud = nh.advertise<sensor_msgs::PointCloud2>("info/env_density_cloud", 1);
 

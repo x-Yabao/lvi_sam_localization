@@ -1,7 +1,7 @@
 #pragma once
 
 #include "parameters.h"
-#include "lvi_sam_location_ros/cloud_info.h"
+#include "lvi_sam_localization/cloud_info.h"
 #include "MultiMap.h"
 #include "keyframe.h"
 
@@ -14,7 +14,7 @@ public:
     void allocateMemory();
 
     // 定位和重定位接口
-    void laserCloudInfoHandler(const lvi_sam_location_ros::cloud_infoConstPtr& msgIn);
+    void laserCloudInfoHandler(const lvi_sam_localization::cloud_infoConstPtr& msgIn);
     void relocate();
     int relocate_MODULE_TEST();
     void locate();
@@ -81,7 +81,7 @@ private:
     ros::Publisher pubLaserOdometryGlobal;
     ros::Publisher pubLaserOdometryIncremental;     // 发布里程计（scan2map之后的，不包括回环）
 
-    lvi_sam_location_ros::cloud_info cloudInfo;                     // 点云信息
+    lvi_sam_localization::cloud_info cloudInfo;                     // 点云信息
 
     /************定位数据结构**************/
     // 用于优化过程

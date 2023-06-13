@@ -10,7 +10,7 @@ MapOptimization::MapOptimization()
     binaryMapFile = binarymapName;
     queryCloud.reset(new pcl::PointCloud<PointType>());
 
-    subCloud = nh.subscribe<lvi_sam_location_ros::cloud_info>("lio_sam/feature/cloud_info", 100, &MapOptimization::laserCloudInfoHandler, this, ros::TransportHints().tcpNoDelay());
+    subCloud = nh.subscribe<lvi_sam_localization::cloud_info>("lio_sam/feature/cloud_info", 100, &MapOptimization::laserCloudInfoHandler, this, ros::TransportHints().tcpNoDelay());
     pubLaserOdometryGlobal = nh.advertise<nav_msgs::Odometry>("lio_sam/mapping/odometry", 1);
     pubLaserOdometryIncremental = nh.advertise<nav_msgs::Odometry>("lio_sam/mapping/odometry_incremental", 1);
 
@@ -65,7 +65,7 @@ void MapOptimization::allocateMemory()
     matP = cv::Mat(6, 6, CV_32F, cv::Scalar::all(0));
 }
 
-void MapOptimization::laserCloudInfoHandler(const lvi_sam_location_ros::cloud_infoConstPtr &msgIn)
+void MapOptimization::laserCloudInfoHandler(const lvi_sam_localization::cloud_infoConstPtr &msgIn)
 {
     // extract time stamp
     // 提取当前时间戳
