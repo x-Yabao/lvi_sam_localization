@@ -1,0 +1,23 @@
+<launch>
+
+    <arg name="project" default="lvi_sam_location_ros"/>
+
+    <!-- param -->
+    <rosparam file="$(find lvi_sam_location_ros)/config/m2dgr/params_lidar.yaml" command="load"/>
+    <rosparam file="$(find lvi_sam_location_ros)/config/m2dgr/params_camera.yaml" command="load"/>
+    <rosparam file="$(find lvi_sam_location_ros)/config/m2dgr/params_function.yaml" command="load"/>
+
+    <!-- Run Rviz -->
+    <!-- <node pkg="rviz" type="rviz" name="$(arg project)_rviz" args="-d $(find lvi_sam_location_ros)/launch/config/rviz.rviz" /> -->
+
+    <!-- Run LVI-SAM-LOCATION-->
+    <node pkg="$(arg project)" type="imageProjectionNode" name="imageProjectionNode" output="screen" respawn="true"/>
+    <node pkg="$(arg project)" type="featureExtractionNode" name="featureExtractionNode" output="screen" respawn="true"/>
+    <node pkg="$(arg project)" type="mapOptimizationNode" name="mapOptimizationNode" output="screen" respawn="true"/>
+    <!-- <node pkg="$(arg project)" type="imuPreintegrationNode" name="imuPreintegrationNode" output="screen" respawn="true"/> -->
+
+    <node pkg="$(arg project)" type="tunningNode" name="tunningNode" output="screen" respawn="true"/>
+
+    <!-- Image conversion -->
+    <node pkg="image_transport" type="republish" name="republish" args="compressed in:=/camera/color/image_raw raw out:=/camera/color/image_raw" output="screen" respawn="true"/>
+</launch>

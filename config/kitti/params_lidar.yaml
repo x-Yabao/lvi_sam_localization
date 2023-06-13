@@ -1,0 +1,69 @@
+# Topics
+pointCloudTopic: "points_raw"               # Point cloud data
+imuTopic: "/imu_raw"                        # IMU data
+odomTopic: "odometry/imu"                   # IMU pre-preintegration odometry, same frequency as IMU
+
+# Frames
+lidarFrame: "base_link"
+baselinkFrame: "base_link"
+odometryFrame: "odom"
+mapFrame: "map"
+
+# Sensor Settings
+N_SCAN: 64                                    # number of lidar channel (i.e., 16, 32, 64, 128)
+Horizon_SCAN: 1800                            # lidar horizontal resolution (Velodyne:1800, Ouster:512,1024,2048)
+ang_res_y: 0.427                              # ang/(N_SCAN-1), 纵向激光头分布的角度/(线数-1)
+downsampleRate: 1                             # default: 1. Downsample your data if too many points. i.e., 16 = 64 / 4, 16 = 16 / 1
+lidarMinRange: 1.0                            # default: 1.0, minimum lidar range to be used
+lidarMaxRange: 1000.0                         # default: 1000.0, maximum lidar range to be used
+
+# IMU Settings
+imuAccNoise: 3.9939570888238808e-03
+imuGyrNoise: 1.5636343949698187e-03
+imuAccBiasN: 6.4356659353532566e-05
+imuGyrBiasN: 3.5640318696367613e-05
+imuGravity: 9.80511
+imuRPYWeight: 0.01
+
+# Extrinsics (lidar -> IMU)
+extrinsicTrans: [0.0, 0.0, 0.0]
+extrinsicRot: [1, 0, 0,
+              0, 1, 0,
+              0, 0, 1]
+extrinsicRPY: [1, 0, 0,
+              0, 1, 0,
+              0, 0, 1]
+
+# LOAM feature threshold
+edgeThreshold: 1.0
+surfThreshold: 0.1
+edgeFeatureMinValidNum: 10
+surfFeatureMinValidNum: 100
+
+# voxel filter paprams
+odometrySurfLeafSize: 0.4                     # default: 0.4 - outdoor, 0.2 - indoor
+mappingCornerLeafSize: 0.2                    # default: 0.2 - outdoor, 0.1 - indoor
+mappingSurfLeafSize: 0.4                      # default: 0.4 - outdoor, 0.2 - indoor
+
+# CPU Params
+numberOfCores: 4                              # number of cores for mapping optimization
+mappingProcessInterval: 0.0  #0.15                  # seconds, regulate mapping frequency
+
+# Surrounding map （位姿追踪参数）
+surroundingKeyframeDensity: 2.0               # （对位姿追踪时提取的局部地图进行下采样）meters, downsample surrounding keyframe poses   
+surroundingKeyframeSearchRadius: 50.0         # （位姿追踪时提取的局部地图）meters, within n meters scan-to-map optimization (when loop closure disabled)
+#locationFitnessScore: 0.5                     #  (位姿追踪时点云配准时的阈值)
+
+# Loop closure
+loopClosureEnableFlag: true
+loopClosureFrequency: 1.0                     # （未用）Hz, regulate loop closure constraint add frequency
+surroundingKeyframeSize: 50                   # （未用）submap size (when loop closure enabled)
+historyKeyframeSearchRadius: 15.0             # meters, key frame that is within n meters from current pose will be considerd for loop closure
+historyKeyframeSearchTimeDiff: 30.0           # （未用）seconds, key frame that is n seconds older will be considered for loop closure
+historyKeyframeSearchNum: 25                  # （重定位时提取的局部地图大小）number of history key frames will be fused into a submap for loop closure
+historyKeyframeFitnessScore: 0.5              # （点云配准时的阈值）icp threshold, the smaller the better alignment, 0.3
+#relocationFitnessScore: 0.5                   #  (重定位时点云配准时的阈值) icp threshold, the smaller the better alignment, 0.3
+
+# algorithm
+RELOCATION_USE_ICP: 1                         # 1 use ICP; 0 use NDT               
+LIDAR_RELOCATION_USE_SC: 1                    # 1 use scancontext, 0 use M2DP

@@ -1,0 +1,4 @@
+Log file created at: 2023/03/22 17:21:11
+Running on machine: pc
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I0322 17:21:11.596590 13574 Location.cpp:858] RELOCATION: ICP fitness test passed (0.0628495 < 0.5)

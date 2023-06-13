@@ -1,0 +1,8 @@
+<launch>
+
+    <arg name="project" default="lvi_sam_location_ros"/>
+
+    <node pkg="$(arg project)" type="sysInfoNode" name="sysInfoNode" output="screen" respawn="true"/>
+    
+   
+</launch>

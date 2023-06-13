@@ -1,0 +1,36 @@
+image_topic: "/camera/color/image_raw"
+
+VOC_PATH: /home/yabao/slam/lvi_sam_location/support_files/brief_k10L6.bin
+BRIEF_PATTERN_FILE: /home/yabao/slam/lvi_sam_location/support_files/brief_pattern.yml
+
+DEBUG_IMAGE: 1
+COL: 640
+ROW: 480
+
+Camera_fx: 617.971050917033
+Camera_fy: 616.445131524790
+Camera_cx: 327.710279392468
+Camera_cy: 253.976983707814
+
+Camera_k1: 0.148000794688248
+Camera_k2: -0.217835187249065
+Camera_p1: 0.0
+Camera_p2: 0.0
+
+# lidar to camera extrinsic
+lidar_to_cam_tx: 0.00065
+lidar_to_cam_ty: 0.65376
+lidar_to_cam_tz: -0.30456
+lidar_to_cam_rx: 0.0
+lidar_to_cam_ry: -1.5707963
+lidar_to_cam_rz: 1.5707963
+
+extrinsicRotation: [ 0.0,  0.0,  1.0,
+                     -1.0,  0.0,  0.0, 
+                     0.0,  -1.0,  0.0]
+
+# Translation from camera frame to imu frame, imu^T_cam
+extrinsicTranslation: [0.57711, -0.00012, 0.83333]
+
+
+  

@@ -1,0 +1,13 @@
+Log file created at: 2023/03/22 10:55:11
+Running on machine: pc
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I0322 10:55:11.385527  7418 Location.cpp:854] RELOCATION: ICP fitness test failed (2.16502 > 0.5)
+I0322 10:55:15.242748  7418 Location.cpp:854] RELOCATION: ICP fitness test failed (4.33681 > 0.5)
+I0322 10:55:19.356053  7418 Location.cpp:854] RELOCATION: ICP fitness test failed (4.75035 > 0.5)
+I0322 10:55:23.157928  7418 Location.cpp:854] RELOCATION: ICP fitness test failed (5.22741 > 0.5)
+I0322 10:55:26.865824  7418 Location.cpp:854] RELOCATION: ICP fitness test failed (1.08023 > 0.5)
+I0322 10:55:30.488034  7418 Location.cpp:854] RELOCATION: ICP fitness test failed (0.867562 > 0.5)
+I0322 10:55:34.195452  7418 Location.cpp:854] RELOCATION: ICP fitness test failed (0.989986 > 0.5)
+I0322 10:55:37.516216  7418 Location.cpp:854] RELOCATION: ICP fitness test failed (0.672787 > 0.5)
+I0322 10:55:40.697078  7418 Location.cpp:854] RELOCATION: ICP fitness test failed (0.6543 > 0.5)
+I0322 10:55:44.146240  7418 Location.cpp:854] RELOCATION: ICP fitness test failed (0.612694 > 0.5)

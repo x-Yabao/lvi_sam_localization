@@ -1,0 +1,36 @@
+image_topic: "/kitti/camera_gray_left/image_raw"
+
+VOC_PATH: /home/yabao/slam/lvi_sam_location/support_files/brief_k10L6.bin
+BRIEF_PATTERN_FILE: /home/yabao/slam/lvi_sam_location/support_files/brief_pattern.yml
+
+DEBUG_IMAGE: 1
+COL: 1226
+ROW: 370
+
+Camera_fx: 7.070912e+02
+Camera_fy: 7.070912e+02
+Camera_cx: 6.018873e+02
+Camera_cy: 1.831104e+02
+
+Camera_k1: 0.0
+Camera_k2: 0.0
+Camera_p1: 0.0
+Camera_p2: 0.0
+
+# lidar to camera extrinsic
+lidar_to_cam_tx: -7.137748e-03
+lidar_to_cam_ty: -7.482656e-02
+lidar_to_cam_tz: -3.336324e-01
+lidar_to_cam_rx: 1.8813157
+lidar_to_cam_ry: -1.5634153
+lidar_to_cam_rz: -0.3104854
+
+extrinsicRotation: [0.00781298, -0.0042792, 0.99996,
+                     -0.999859, -0.014868, 0.00774856,
+                     0.0148343, -0.99988, -0.00439476]
+
+# Translation from camera frame to imu frame, imu^T_cam
+extrinsicTranslation: [1.1439, -0.312718, 0.726546]
+
+
+  
