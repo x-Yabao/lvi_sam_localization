@@ -1,0 +1,10 @@
+<launch>
+
+    <arg name="project" default="lvi_sam_localization"/>
+    
+    <node pkg="$(arg project)" type="imuPreintegrationNode" name="imuPreintegrationNode" output="screen" respawn="true"/>
+    <node pkg="$(arg project)" type="imageProjectionNode" name="imageProjectionNode" output="screen" respawn="true"/>
+    <node pkg="$(arg project)" type="featureExtractionNode" name="featureExtractionNode" output="screen" respawn="true"/>
+    <node pkg="$(arg project)" type="globalLocalizationNode" name="mapOptmizationNode" output="screen" respawn="true"/>
+    
+</launch>

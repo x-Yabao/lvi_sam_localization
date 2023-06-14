@@ -1,0 +1,22 @@
+<launch>
+
+    <arg name="project" default="lvi_sam_localization"/>
+    
+    <!-- Parameters -->
+    <rosparam file="$(find lvi_sam_localization)/config/m2dgr/params_lidar.yaml" command="load"/>
+    <rosparam file="$(find lvi_sam_localization)/config/m2dgr/params_camera.yaml" command="load"/>
+    <rosparam file="$(find lvi_sam_localization)/config/m2dgr/params_function.yaml" command="load"/>
+
+    <!--- LOAM -->
+    <include file="$(find lvi_sam_localization)/launch/include/module_relocolize.launch" />
+
+    <!--- Robot State TF -->
+    <include file="$(find lvi_sam_localization)/launch/include/module_robot_state_publisher.launch" />
+
+    <!--- Run Navsat -->
+    <include file="$(find lvi_sam_localization)/launch/include/module_navsat.launch" />
+
+    <!--- Run Rviz-->
+    <include file="$(find lvi_sam_localization)/launch/include/module_rviz.launch" />
+
+</launch>
