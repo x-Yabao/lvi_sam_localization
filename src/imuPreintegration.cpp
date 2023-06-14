@@ -2,17 +2,15 @@
 
 IMUPreintegration::IMUPreintegration()
 {
-    //added***********gc
+    //added gc
     subPoseOdomToMap = nh.subscribe<geometry_msgs::PoseStamped>("lio_sam/mapping/pose_odomTo_map", 1, &IMUPreintegration::odomToMapPoseHandler, this, ros::TransportHints().tcpNoDelay());
-    //added***********gc
 
-    subImu      = nh.subscribe<sensor_msgs::Imu>  (imuTopic,                   2000, &IMUPreintegration::imuHandler,      this, ros::TransportHints().tcpNoDelay());
-    subOdometry = nh.subscribe<nav_msgs::Odometry>("lio_sam/mapping/odometry", 5,    &IMUPreintegration::odometryHandler, this, ros::TransportHints().tcpNoDelay());
-
+    subImu      = nh.subscribe<sensor_msgs::Imu>  (imuTopic, 2000, &IMUPreintegration::imuHandler, this, ros::TransportHints().tcpNoDelay());
+    subOdometry = nh.subscribe<nav_msgs::Odometry>("lio_sam/mapping/odometry", 5, &IMUPreintegration::odometryHandler, this, ros::TransportHints().tcpNoDelay());
     pubImuOdometry = nh.advertise<nav_msgs::Odometry> (odomTopic, 2000);
     pubImuPath     = nh.advertise<nav_msgs::Path>     ("lio_sam/imu/path", 1);
 
-    map_to_odom    = tf::Transform(tf::createQuaternionFromRPY(0, 0, 0), tf::Vector3(0, 0, 0));
+    map_to_odom = tf::Transform(tf::createQuaternionFromRPY(0, 0, 0), tf::Vector3(0, 0, 0));
 
     boost::shared_ptr<gtsam::PreintegrationParams> p = gtsam::PreintegrationParams::MakeSharedU(imuGravity);
     p->accelerometerCovariance  = gtsam::Matrix33::Identity(3,3) * pow(imuAccNoise, 2); // acc white noise in continuous
@@ -39,7 +37,7 @@ void IMUPreintegration::odomToMapPoseHandler(const geometry_msgs::PoseStamped::C
     q_tem.setW(poseOdomToMapmsg->pose.orientation.w);
     tf::Vector3 p_tem(poseOdomToMapmsg->pose.position.x, poseOdomToMapmsg->pose.position.y, poseOdomToMapmsg->pose.position.z);
 
-    map_to_odom    = tf::Transform(q_tem, p_tem);
+    map_to_odom = tf::Transform(q_tem, p_tem);
 }
 
 void IMUPreintegration::resetOptimization()
@@ -89,7 +87,6 @@ void IMUPreintegration::odometryHandler(const nav_msgs::Odometry::ConstPtr& odom
         imuPreintegrationResetId = currentResetId;
         return;
     }
-
 
     // 0. initialize system
     if (systemInitialized == false)
@@ -290,7 +287,6 @@ void IMUPreintegration::imuHandler(const sensor_msgs::Imu::ConstPtr& imu_raw)
     sensor_msgs::Imu thisImu = imuConverter(*imu_raw);
     // publish static tf
     //gc: the tf of map relative to odom  Todo: something can be done here to do localizaing in built map
-    //todo: noted by gc
     tfMap2Odom.sendTransform(tf::StampedTransform(map_to_odom, thisImu.header.stamp, "map", "odom"));
 
     imuQueOpt.push_back(thisImu);
@@ -336,7 +332,7 @@ void IMUPreintegration::imuHandler(const sensor_msgs::Imu::ConstPtr& imu_raw)
     odometry.twist.twist.angular.y = thisImu.angular_velocity.y + prevBiasOdom.gyroscope().y();
     odometry.twist.twist.angular.z = thisImu.angular_velocity.z + prevBiasOdom.gyroscope().z();
     odometry.pose.covariance[0] = double(imuPreintegrationResetId);
-    pubImuOdometry.publish(odometry);//gc: publish the state predicted by IMu
+    pubImuOdometry.publish(odometry);       //gc: publish the state predicted by IMu
 
     // publish imu path
     static nav_msgs::Path imuPath;

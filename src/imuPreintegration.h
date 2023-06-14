@@ -56,7 +56,6 @@ public:
     gtsam::noiseModel::Diagonal::shared_ptr correctionNoise;
     gtsam::Vector noiseModelBetweenBias;
 
-
     gtsam::PreintegratedImuMeasurements *imuIntegratorOpt_;
     gtsam::PreintegratedImuMeasurements *imuIntegratorImu_;
 
@@ -82,7 +81,7 @@ public:
     const double delta_t = 0;
 
     int key = 1;
-    int imuPreintegrationResetId = 0;
+    int imuPreintegrationResetId = 0;       // 用在建图时，基于已知地图定位不需要
 
     gtsam::Pose3 imu2Lidar = gtsam::Pose3(gtsam::Rot3(1, 0, 0, 0), gtsam::Point3(-extTrans.x(), -extTrans.y(), -extTrans.z()));
     gtsam::Pose3 lidar2Imu = gtsam::Pose3(gtsam::Rot3(1, 0, 0, 0), gtsam::Point3(extTrans.x(), extTrans.y(), extTrans.z()));;
