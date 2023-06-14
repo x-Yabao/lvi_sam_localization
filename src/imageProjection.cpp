@@ -345,6 +345,7 @@ void ImageProjection::odomDeskewInfo()
     cloudInfo.initialGuessRoll  = roll;
     cloudInfo.initialGuessPitch = pitch;
     cloudInfo.initialGuessYaw   = yaw;
+    cloudInfo.imuPreintegrationResetId = round(startOdomMsg.pose.covariance[0]);    // add gc
 
     cloudInfo.odomAvailable = true; // odom提供了这一帧点云的初始位姿
 

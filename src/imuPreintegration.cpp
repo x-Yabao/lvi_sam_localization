@@ -40,7 +40,6 @@ void IMUPreintegration::odomToMapPoseHandler(const geometry_msgs::PoseStamped::C
     tf::Vector3 p_tem(poseOdomToMapmsg->pose.position.x, poseOdomToMapmsg->pose.position.y, poseOdomToMapmsg->pose.position.z);
 
     map_to_odom    = tf::Transform(q_tem, p_tem);
-
 }
 
 void IMUPreintegration::resetOptimization()

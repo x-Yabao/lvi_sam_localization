@@ -17,6 +17,7 @@
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/inference/Symbol.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+
 #include <gtsam/nonlinear/ISAM2.h>
 
 using namespace gtsam;
@@ -33,6 +34,7 @@ public:
     void allocateMemory();
     void resetLIO();
     void laserCloudInfoHandler(const lvi_sam_localization::cloud_infoConstPtr& msgIn);
+    
     void gpsHandler(const nav_msgs::Odometry::ConstPtr& gpsMsg);
     void pointAssociateToMap(PointType const * const pi, PointType * const po);
     pcl::PointCloud<PointType>::Ptr transformPointCloud(pcl::PointCloud<PointType>::Ptr cloudIn, PointTypePose* transformIn);
@@ -41,11 +43,13 @@ public:
     Eigen::Affine3f pclPointToAffine3f(PointTypePose thisPoint);
     Eigen::Affine3f trans2Affine3f(float transformIn[]);
     PointTypePose trans2PointTypePose(float transformIn[]);
+
     void updateInitialGuess();
     void extractForLoopClosure();
     void extractCloud(pcl::PointCloud<PointType>::Ptr cloudToExtract);
     void extractSurroundingKeyFrames();
     void downsampleCurrentScan();
+
     void updatePointAssociateToMap();
     void cornerOptimization();
     void surfOptimization();
@@ -54,6 +58,7 @@ public:
     void scan2MapOptimization();
     void transformUpdate();
     float constraintTransformation(float value, float limit);
+
     bool saveFrame();
     void addOdomFactor();
     void saveKeyFramesAndFactor();
@@ -78,9 +83,9 @@ public:
 
     ros::NodeHandle nh;
 
+    ros::Publisher pubKeyPoses;
     ros::Publisher pubLaserCloudSurround;
     ros::Publisher pubOdomAftMappedROS;
-    ros::Publisher pubKeyPoses;
     ros::Publisher pubPath;
 
     ros::Publisher pubHistoryKeyFrames;
@@ -98,17 +103,17 @@ public:
     vector<pcl::PointCloud<PointType>::Ptr> cornerCloudKeyFrames;
     vector<pcl::PointCloud<PointType>::Ptr> surfCloudKeyFrames;
 
-    pcl::PointCloud<PointType>::Ptr cloudKeyPoses3D;        //gc: can be used to illustrate the path of odometry // keep
-    pcl::PointCloud<PointTypePose>::Ptr cloudKeyPoses6D;    //gc: can be used to illustrate the path of odometry //keep
+    pcl::PointCloud<PointType>::Ptr cloudKeyPoses3D;        
+    pcl::PointCloud<PointTypePose>::Ptr cloudKeyPoses6D;    
     
-    //addded**********************************by gc
+    //addded by gc
     std::mutex mtxWin;
     std::vector<PointType> win_cloudKeyPoses3D;         // 里程计地图窗口
     std::vector<PointTypePose> win_cloudKeyPoses6D;
 
     std::vector<pcl::PointCloud<PointType>::Ptr> win_cornerCloudKeyFrames;
     std::vector<pcl::PointCloud<PointType>::Ptr> win_surfCloudKeyFrames;
-    //added***********************************by gc
+    //added by gc
 
     pcl::PointCloud<PointType>::Ptr laserCloudCornerLast;   // corner feature set from odoOptimization
     pcl::PointCloud<PointType>::Ptr laserCloudSurfLast;     // surf feature set from odoOptimization
@@ -136,16 +141,16 @@ public:
     //pcl::KdTreeFLANN<PointType>::Ptr kdtreeSurroundingKeyPoses;
     //pcl::KdTreeFLANN<PointType>::Ptr kdtreeHistoryKeyPoses;
 
-    pcl::PointCloud<PointType>::Ptr latestKeyFrameCloud;
-    pcl::PointCloud<PointType>::Ptr nearHistoryKeyFrameCloud;
+    pcl::PointCloud<PointType>::Ptr latestKeyFrameCloud;        // added by gc
+    pcl::PointCloud<PointType>::Ptr nearHistoryKeyFrameCloud;   // added by gc              
 
     pcl::VoxelGrid<PointType> downSizeFilterCorner;
     pcl::VoxelGrid<PointType> downSizeFilterSurf;
     pcl::VoxelGrid<PointType> downSizeFilterICP;
     pcl::VoxelGrid<PointType> downSizeFilterSurroundingKeyPoses; // for surrounding key poses of scan-to-map optimization
 
-    ros::Time timeLaserInfoStamp;
-    double timeLaserCloudInfoLast;
+    ros::Time timeLaserInfoStamp;       // ros::time 类型的时间
+    double timeLaserCloudInfoLast;      // double 类型的时间
 
     float transformTobeMapped[6];
 
@@ -169,26 +174,22 @@ public:
 
     Eigen::Affine3f transPointAssociateToMap;
 
-    /*************added by gc*****************/
+    /* added by gc */
     pcl::PointCloud<PointType>::Ptr cloudGlobalMap;             // 全局地图
     pcl::PointCloud<PointType>::Ptr cloudGlobalMapDS;           // 全局地图降采样
-    pcl::PointCloud<PointType>::Ptr cloudScanForInitialize;
+    pcl::PointCloud<PointType>::Ptr cloudScanForInitialize;     // 用于初始化的点云
 
     ros::Subscriber subIniPoseFromRviz;
-    ros::Publisher pubLaserCloudInWorld;
-    ros::Publisher pubMapWorld;
+    ros::Publisher pubLaserCloudInWorld;                        // 发布当前点云在世界坐标系下的位置
+    ros::Publisher pubMapWorld;                                 // 发布全局地图
     //ros::Publisher fortest_publasercloudINWorld;
 
-    float transformInTheWorld[6];   // the pose in the world（the prebuilt map）
+    float transformInTheWorld[6];                               // the pose in the world（the prebuilt map）
     float tranformOdomToWorld[6];
-    int globalLocaSkipFrames = 3;
     int frameNum = 1;
     tf::TransformBroadcaster tfOdom2Map;
     std::mutex mtxtranformOdomToWorld;
     std::mutex mtx_general;
-    bool globalLocalizeInitialiized = false;
-
-    ros::Subscriber subImu;
 
     enum InitializedFlag
     {
@@ -201,5 +202,5 @@ public:
 
     geometry_msgs::PoseStamped poseOdomToMap;
     ros::Publisher pubOdomToMapPose;
-    /*************added by gc******************/
+    /* added by gc */
 };
