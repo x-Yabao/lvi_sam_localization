@@ -35,6 +35,8 @@ public:
     void imuHandler(const sensor_msgs::Imu::ConstPtr& imu_raw);
 
 public:
+    std::mutex mtx;
+
     ros::NodeHandle nh;
     
     ros::Subscriber subImu;

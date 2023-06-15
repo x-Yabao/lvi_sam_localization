@@ -20,6 +20,8 @@ used by ORBSLAM2 and which are not available in boost serialization library
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+#include <gtsam/base/Vector.h>
+
 // #include "Thirdparty/DBoW2/DBoW2/BowVector.h"
 // #include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
 
@@ -113,11 +115,12 @@ namespace boost{
         ar & boost::serialization::make_array(m.data(), m.size());
     }
 
-    template<class Archive>
-    void serialize(Archive &ar, Eigen::Vector3d &m, const unsigned int file_version)
-    {
-        ar & boost::serialization::make_array(m.data(), m.size());
-    }
+    // 与gtsam重复了，在<gtsam/base/Vector.h>中
+    // template<class Archive>
+    // void serialize(Archive &ar, Eigen::Vector3d &m, const unsigned int file_version)
+    // {
+    //     ar & boost::serialization::make_array(m.data(), m.size());
+    // }
 
     template<class Archive>
     void serialize(Archive &ar, Eigen::Matrix<double, 8, 1> &m, const unsigned int file_version)

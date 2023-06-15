@@ -64,6 +64,8 @@ void IMUPreintegration::resetParams()
 //gc: the odometry computed by the mapoptimization module
 void IMUPreintegration::odometryHandler(const nav_msgs::Odometry::ConstPtr& odomMsg)
 {
+    std::lock_guard<std::mutex> lock(mtx);          // important!
+
     double currentCorrectionTime = ROS_TIME(odomMsg);
 
     // make sure we have imu data to integrate
@@ -284,6 +286,8 @@ bool IMUPreintegration::failureDetection(const gtsam::Vector3& velCur, const gts
 
 void IMUPreintegration::imuHandler(const sensor_msgs::Imu::ConstPtr& imu_raw)
 {
+    std::lock_guard<std::mutex> lock(mtx);
+
     sensor_msgs::Imu thisImu = imuConverter(*imu_raw);
     // publish static tf
     //gc: the tf of map relative to odom  Todo: something can be done here to do localizaing in built map

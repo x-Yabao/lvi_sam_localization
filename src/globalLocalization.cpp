@@ -4,6 +4,8 @@ std::string savePCDDirectory = "/output/lio-sam/gate03/";
 
 mapOptimization::mapOptimization()
 {
+    binaryMapFile = binarymapName;  // yabao
+
     ISAM2Params parameters;
     parameters.relinearizeThreshold = 0.1;
     parameters.relinearizeSkip = 1;
@@ -114,6 +116,15 @@ void mapOptimization::laserCloudInfoHandler(const lvi_sam_localization::cloud_in
     cloudInfo = *msgIn;
     pcl::fromROSMsg(msgIn->cloud_corner,  *laserCloudCornerLast);
     pcl::fromROSMsg(msgIn->cloud_surface, *laserCloudSurfLast);
+
+    // yabao, get picture
+    imageAvailable = cloudInfo.imageAvailable;
+    if (imageAvailable)
+    {
+        cv_bridge::CvImageConstPtr ptr;
+        ptr = cv_bridge::toCvCopy(msgIn->image, sensor_msgs::image_encodings::MONO8);
+        currentPicture = ptr->image;
+    }
 
     /************************************added by gc*****************************/
     //if the sysytem is not initialized offer the first scan for the system to initialize
@@ -1258,11 +1269,6 @@ void mapOptimization::ICPscanMatchGlobal()
 
 }
 
-void mapOptimization::keyFramesLoad()
-{
-
-}
-
 void mapOptimization::initialpose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& pose_msg)
 {
     //first calculate global pose
@@ -1316,4 +1322,523 @@ void mapOptimization::initialpose_callback(const geometry_msgs::PoseWithCovarian
     initializedFlag = NonInitialized;
 }
 
+/*********************** multimap function *******************************/
+int mapOptimization::loadFolderMap()
+{
+    TicToc t_load(true);
+    map = new MultiMap();
+    map->loadMultiMap();
+    t_load.toc("Load Floder Map total use time");
+    return 0;
+}
 
+int mapOptimization::saveBinaryMap()
+{
+    std::ofstream out(binaryMapFile, std::ios_base::binary);
+    if (!out)
+    {
+        std::cerr << "Cannot Write to Mapfile: " << binaryMapFile << std::endl;
+        exit(-1);
+    }
+    std::cout << "Saving Mapfile: " << binaryMapFile << " ...." << std::endl;
+    boost::archive::binary_oarchive oa(out, boost::archive::no_header);
+    oa << map;
+    std::cout << "Mapfile saved succesfully!" << std::endl;
+    out.close();
+    return 0;
+}
+
+int mapOptimization::loadBinaryMap()
+{
+    TicToc t_load(true);
+    TicToc t_binary(true);
+    std::ifstream in(binaryMapFile, std::ios_base::binary);
+    if (!in)
+    {
+        cerr << "Cannot Open Mapfile: " << binaryMapFile << ". No existing map file found!" << std::endl;
+        return false;
+    }
+    cout << "Loading Mapfile: " << binaryMapFile << "....." << std::endl;
+    boost::archive::binary_iarchive ia(in, boost::archive::no_header);
+    ia >> map; // 会执行map的构造函数
+    in.close();
+    t_binary.toc("Load binary file use time");
+
+    // 加载scManager
+    TicToc t_sc(true);
+    // map->loadSCbyScans();
+    //  还有优化空间，Scancontext类的数据类型比较简单
+    for (auto &cloud : map->cloudKeyFrames)
+    {
+        map->scManager.makeAndSaveScancontextAndKeys(*cloud);
+    }
+    t_sc.toc("Load Scan Context use time");
+
+    // 加载字典
+    TicToc t_vocabulary(true);
+    map->loadVocabulary(VOC_PATH);
+    t_vocabulary.toc("Load vocabulary use time");
+
+    // 加载地图词袋
+    TicToc t_db(true);
+    for (auto &kf : map->keyframelist)
+        map->db.add(kf->brief_descriptors);
+    t_db.toc("Load Brief Database use time");
+
+    t_load.toc("Load Binary Map total use time");
+    cout << "Load Binary Map Finsh! Please play rosbag!" << std::endl;
+
+    return 0;
+}
+
+/*********************** visual relocation *******************************/
+
+int mapOptimization::visualRelocate()
+{
+    // 1.词袋重定位
+    int loop_index = detectLoop(queryPicture, queryPicture->index);
+    if (loop_index != -1)
+    {
+        KeyFrame *old_kf = getKeyFrame(loop_index);
+
+#ifdef NCLT
+        // NCLT视觉重定位不做几何验证
+        printf(" %d detect loop with %d \n", queryPicture->index, loop_index);
+        cv::Mat query_img = queryPicture->image;
+        cv::Mat old_img = old_kf->image;
+        cv::Mat show_img;
+        cv::hconcat(query_img, old_img, show_img);
+        // cv::imshow("query picture - old picture", show_img);
+        // cv::waitKey();
+        std::cout << "visual coarse relocate success!" << std::endl;
+        return 0;
+#endif
+
+        // 2.几何验证
+        // 视觉几何验证似乎不是必要的，因为后面有激光的验证了
+        Eigen::Vector3d queryPicture_T;
+        Eigen::Matrix3d queryPicture_R;
+        // 为什么改成了old_kf->findConnection()而不是queryPicture->findConnection()
+        // 因为调用findConnection()的keyframe需要具有地图点，后面会进行pnp
+        if (old_kf->findConnection(queryPicture, queryPicture_T, queryPicture_R))
+        {
+
+            // // 3.获取视觉粗定位结果(基于视觉路径的方式)
+            // // 可以把相机坐标系转化为激光坐标系，更准确
+            // //CameraFrame2LidarFrame(queryPicture_T, queryPicture_R, tmp_relocation_T, tmp_relocation_R);
+            // tmp_relocation_T = queryPicture_T;
+            // tmp_relocation_R = queryPicture_R;
+            // Eigen::Vector3d tmp_relocation_YPR = Utility::R2ypr(tmp_relocation_R);
+            // tmp_relocation_pose.x = tmp_relocation_T.x();
+            // tmp_relocation_pose.y = tmp_relocation_T.y();
+            // tmp_relocation_pose.z = tmp_relocation_T.z();
+            // tmp_relocation_pose.yaw = tmp_relocation_YPR.x() / 180 * M_PI;
+            // tmp_relocation_pose.pitch = tmp_relocation_YPR.y() / 180 * M_PI;
+            // tmp_relocation_pose.roll = tmp_relocation_YPR.z() / 180 * M_PI;
+            // relocation_lidar_index = -1;
+
+            // 3.获取视觉粗定位结果(基于时间戳的方式)
+            pcl::PointCloud<PointTypePose>::Ptr copy_cloudKeyPoses6D(new pcl::PointCloud<PointTypePose>());
+            *copy_cloudKeyPoses6D = *(map->cloudKeyPoses6D);
+            double cloud_time, image_time;
+            image_time = old_kf->time_stamp;
+            int loopKeyPre = 0;
+            // 找到第一个时间戳大于image的lidar，当然还有更精确的方法
+            for (int i = 0; i < copy_cloudKeyPoses6D->size(); i++)
+            {
+                cloud_time = copy_cloudKeyPoses6D->points[i].time;
+                if (cloud_time >= image_time)
+                {
+                    loopKeyPre = i;
+                    break;
+                }
+            }
+
+            tmp_relocation_pose = copy_cloudKeyPoses6D->points[loopKeyPre];
+            relocation_lidar_index = loopKeyPre;
+            tmp_relocation_T(0) = tmp_relocation_pose.x;
+            tmp_relocation_T(1) = tmp_relocation_pose.y;
+            tmp_relocation_T(2) = tmp_relocation_pose.z;
+            Eigen::Vector3d tmp_relocation_YPR;
+            tmp_relocation_YPR << tmp_relocation_pose.yaw / M_PI * 180,
+                tmp_relocation_pose.pitch / M_PI * 180,
+                tmp_relocation_pose.roll / M_PI * 180;
+            tmp_relocation_R = Utility::ypr2R(tmp_relocation_YPR);
+
+            ROS_INFO("Visual rough relocation success!");
+            std::cout << "T is: " << tmp_relocation_T.transpose() << std::endl;
+            std::cout << "YPR is: " << tmp_relocation_YPR.transpose() << std::endl;
+            std::cout << "image time stamp: " << fixed << setprecision(5) << image_time << std::endl; // 不要科学计数法
+            std::cout << "lidar time stamp: " << fixed << setprecision(5) << cloud_time << std::endl; // 不要科学计数法
+
+            return 0;
+        }
+    }
+    ROS_INFO("Visual rough relocation failure!");
+    return -1;
+}
+
+// relocate_test = true:测试重定位模块，图片从路径加载
+// relocate_test = false:正常运行
+int mapOptimization::loadQueryPicture(bool relocate_test)
+{
+    double time_stamp = 0;
+    int frame_index = map->keyframelist.size();
+    Vector3d T = Vector3d::Zero();
+    Matrix3d R = Matrix3d::Zero();
+    vector<cv::Point3f> point_3d;
+    vector<cv::Point2f> point_2d_uv;
+    vector<cv::Point2f> point_2d_normal;
+    vector<double> point_id;
+    int sequence = 1;
+
+    cv::Mat image;
+    if (relocate_test)
+        image = cv::imread(QUERY_IMAGE_PATH, 0);
+    else
+        image = currentPicture.clone();
+
+    if (image.empty())
+    {
+        std::cout << "Load the query picture from: " << QUERY_IMAGE_PATH << " failed!" << std::endl;
+        return -1;
+    }
+
+#ifdef NCLT
+    cv::transpose(image, image);
+    cv::flip(image, image, 1); // 90度旋转
+#endif
+
+    queryPicture = new KeyFrame(time_stamp, frame_index, T, R,
+                                image, point_3d, point_2d_uv, point_2d_normal, point_id, sequence);
+    std::cout << "Load the query picture success!" << std::endl;
+    return 0;
+}
+
+int mapOptimization::detectLoop(KeyFrame *keyframe, int frame_index)
+{
+    DBoW2::QueryResults ret;
+
+    map->db.query(keyframe->brief_descriptors, ret, 4, frame_index);
+
+    bool find_loop = false;
+
+    // a good match with its nerghbour
+    // (adjust parameters)
+    if (ret.size() >= 1 && ret[0].Score > 0.05)
+        for (unsigned int i = 1; i < ret.size(); i++)
+        {
+            if (ret[i].Score > 0.015)
+                find_loop = true;
+        }
+
+    if (find_loop)
+    {
+        int relo_index;
+        relo_index = ret[0].Id;
+        return relo_index;
+    }
+    else
+        return -1;
+}
+
+KeyFrame *mapOptimization::getKeyFrame(int index)
+{
+    // unique_lock<mutex> lock(m_keyframelist);
+    list<KeyFrame *>::iterator it = map->keyframelist.begin();
+    for (; it != map->keyframelist.end(); it++)
+    {
+        if ((*it)->index == index)
+            break;
+    }
+    if (it != map->keyframelist.end())
+        return *it;
+    else
+        return NULL;
+}
+
+/*********************** lidar relocation *******************************/
+
+int mapOptimization::lidarRelocate()
+{
+    // scancontext重定位
+    if (LIDAR_RELOCATION_USE_SC)
+    {
+        // 1.调用scancontext接口
+        auto detectResult = map->scManager.detectLoopClosureID(); // first: nn index, second: yaw diff
+        int loopKeyPre = detectResult.first;
+        float yaw_diff_rad = detectResult.second;
+        // 2.移除scancontext中关于queryCloud的内容(不管成功失败都要移除)
+        map->scManager.removeLastScancontextAndKeys();
+
+        if (loopKeyPre == -1)
+        {
+            ROS_INFO("LiDAR rough relocation failure, couldn't find SC loop!");
+            return -1;
+        }
+        if (loopKeyPre >= map->cloudKeyPoses6D->size())
+        {
+            std::cout << "Wrong LiDAR index!";
+            return -1;
+        }
+        ROS_INFO("LiDAR rough relocation success, SC loop found: %d!", loopKeyPre);
+
+#ifdef NCLT
+        // NCLT数据集只用SC重定位，不取粗位姿了
+        return 0;
+#endif
+
+        // 3.得到粗位姿，以找到的lidar帧作为粗位姿，并在yaw上做一点处理
+        tmp_relocation_pose = map->cloudKeyPoses6D->points[loopKeyPre];
+        tmp_relocation_pose.yaw = tmp_relocation_pose.yaw - yaw_diff_rad;
+        relocation_lidar_index = loopKeyPre;
+        tmp_relocation_T(0) = tmp_relocation_pose.x;
+        tmp_relocation_T(1) = tmp_relocation_pose.y;
+        tmp_relocation_T(2) = tmp_relocation_pose.z;
+        Eigen::Vector3d tmp_relocation_YPR;
+        tmp_relocation_YPR << tmp_relocation_pose.yaw / M_PI * 180,
+            tmp_relocation_pose.pitch / M_PI * 180,
+            tmp_relocation_pose.roll / M_PI * 180;
+        tmp_relocation_R = Utility::ypr2R(tmp_relocation_YPR);
+
+        std::cout << "T is: " << tmp_relocation_T.transpose() << std::endl;
+        std::cout << "YPR is: " << tmp_relocation_YPR.transpose() << std::endl;
+    }
+    else
+    {
+    }
+
+    return 0;
+}
+
+int mapOptimization::loadQueryCloud(bool relocate_test)
+{
+    if (relocate_test)
+    {
+        std::cout << "Loading the query cloud." << std::endl;
+        std::string file_path = QUERY_LIDAR_PATH;
+        if (file_path.substr(file_path.size() - 3, 3) == "pcd")
+        {
+            if (pcl::io::loadPCDFile(file_path, *queryCloud) == -1)
+            {
+                std::cout << "Load pcd file failed." << std::endl;
+                return -1;
+            }
+        }
+        else if (file_path.substr(file_path.size() - 3, 3) == "bin")
+        {
+            if (_loadBINFile(file_path, *queryCloud) == -1)
+            {
+                std::cout << "Load bin file failed." << std::endl;
+                return -1;
+            };
+        }
+        else
+        {
+            std::cout << "Didn't support thid format." << std::endl;
+            return -1;
+        }
+        std::cout << "Load the query scan success: " << file_path << std::endl;
+    }
+    else
+    {
+        *queryCloud = *laserCloudLast;
+    }
+
+    map->scManager.makeAndSaveScancontextAndKeys(*queryCloud);
+
+    return 0;
+}
+
+void mapOptimization::loopFindNearKeyframesByIndex(pcl::PointCloud<PointType>::Ptr &nearKeyframes, const int &key, const int &searchNum)
+{
+    // extract near keyframes
+    nearKeyframes->clear();
+    int cloudSize = map->cloudKeyPoses6D->size();
+    for (int i = -searchNum; i <= searchNum; ++i)
+    {
+        int keyNear = key + i;
+        if (keyNear < 0 || keyNear >= cloudSize)
+            continue;
+        // *nearKeyframes += *transformPointCloud(cornerCloudKeyFrames[keyNear], &cloudKeyPoses6D->points[keyNear]);
+        // *nearKeyframes += *transformPointCloud(surfCloudKeyFrames[keyNear],   &cloudKeyPoses6D->points[keyNear]);
+        *nearKeyframes += *transformPointCloud(map->cloudKeyFrames[keyNear], &map->cloudKeyPoses6D->points[keyNear]);
+    }
+
+    if (nearKeyframes->empty())
+        return;
+
+    // downsample near keyframes
+    pcl::PointCloud<PointType>::Ptr cloud_temp(new pcl::PointCloud<PointType>());
+    downSizeFilterICP.setInputCloud(nearKeyframes);
+    downSizeFilterICP.filter(*cloud_temp);
+    *nearKeyframes = *cloud_temp;
+}
+
+void mapOptimization::loopFindNearKeyframesByPose(pcl::PointCloud<PointType>::Ptr &nearKeyframes, const PointType &pose, const int &searchNum)
+{
+    // extract near keyframes
+    nearKeyframes->clear();
+    std::vector<int> pointSearchInd;
+    std::vector<float> pointSearchSqDis;
+    kdtreeLidarKeyPoses->setInputCloud(map->cloudKeyPoses3D); // 可以移除去，一次性添加
+    kdtreeLidarKeyPoses->nearestKSearch(pose, 2 * searchNum, pointSearchInd, pointSearchSqDis);
+    for (int i = 0; i < pointSearchInd.size(); i++)
+    {
+        int index = pointSearchInd[i];
+        // *nearKeyframes += *transformPointCloud(cornerCloudKeyFrames[keyNear], &cloudKeyPoses6D->points[keyNear]);
+        // *nearKeyframes += *transformPointCloud(surfCloudKeyFrames[keyNear],   &cloudKeyPoses6D->points[keyNear]);
+        *nearKeyframes += *transformPointCloud(map->cloudKeyFrames[index], &map->cloudKeyPoses6D->points[index]);
+    }
+
+    if (nearKeyframes->empty())
+        return;
+
+    // downsample near keyframes
+    pcl::PointCloud<PointType>::Ptr cloud_temp(new pcl::PointCloud<PointType>());
+    downSizeFilterICP.setInputCloud(nearKeyframes);
+    downSizeFilterICP.filter(*cloud_temp);
+    *nearKeyframes = *cloud_temp;
+}
+
+int mapOptimization::refineRelocateResult()
+{
+    // extract cloud
+    pcl::PointCloud<PointType>::Ptr cureKeyframeCloud(new pcl::PointCloud<PointType>());
+    pcl::PointCloud<PointType>::Ptr prevKeyframeCloud(new pcl::PointCloud<PointType>());
+
+    // *cureKeyframeCloud = *queryCloud;
+    *cureKeyframeCloud = *transformPointCloud(queryCloud, &tmp_relocation_pose);
+    if (relocation_lidar_index != -1)
+        loopFindNearKeyframesByIndex(prevKeyframeCloud, relocation_lidar_index, historyKeyframeSearchNum);
+    else
+    {
+        PointType pose;
+        pose.x = tmp_relocation_pose.x;
+        pose.y = tmp_relocation_pose.y;
+        pose.z = tmp_relocation_pose.z;
+        loopFindNearKeyframesByPose(prevKeyframeCloud, pose, historyKeyframeSearchNum);
+    }
+
+    if (cureKeyframeCloud->size() < 300 || prevKeyframeCloud->size() < 1000)
+    {
+        std::cout << "cloud is too small" << std::endl;
+        return -1;
+    }
+
+    if (RELOCATION_USE_ICP)
+    {
+        // ICP Settings
+        static pcl::IterativeClosestPoint<PointType, PointType> icp;
+        icp.setMaxCorrespondenceDistance(historyKeyframeSearchRadius * 2); // giseop , use a value can cover 2*historyKeyframeSearchNum range in meter
+        icp.setMaximumIterations(100);
+        icp.setTransformationEpsilon(1e-6);
+        icp.setEuclideanFitnessEpsilon(1e-6);
+        // icp.setRANSACIterations(10);
+
+        // Align clouds
+        icp.setInputSource(cureKeyframeCloud);
+        icp.setInputTarget(prevKeyframeCloud);
+        pcl::PointCloud<PointType>::Ptr result(new pcl::PointCloud<PointType>());
+        icp.align(*result);
+
+        // icp得分实际算出的是点云对之间的“平均距离”，即得分越小越好
+        if (icp.hasConverged() == false || icp.getFitnessScore() > historyKeyframeFitnessScore)
+        {
+            ROS_INFO("RELOCATION: ICP fitness test failed (%f > %f)", icp.getFitnessScore(), historyKeyframeFitnessScore);
+            return -1;
+        }
+        else
+        {
+            ROS_INFO("RELOCATION: ICP fitness test passed (%f <= %f)", icp.getFitnessScore(), historyKeyframeFitnessScore);
+        }
+
+        // 计算重定位结果位姿
+        Eigen::Affine3f correctionLidarFrame;
+        correctionLidarFrame = icp.getFinalTransformation();
+        // transform from world origin to wrong pose
+        Eigen::Affine3f tWrong = pclPointToAffine3f(tmp_relocation_pose);
+        // transform from world origin to corrected pose
+        Eigen::Affine3f tCorrect = correctionLidarFrame * tWrong;
+        std::cout << "refine relocate result success, the result is: " << std::endl;
+        // std::cout << tCorrect.matrix() << std::endl;
+
+        // 获取重定位结果
+        lastTransformation = tCorrect;
+        relocation_T = tCorrect.translation().cast<double>();
+        relocation_R = tCorrect.rotation().cast<double>();
+        location_T = relocation_T; // 重定位结果也要赋值给定位
+        location_R = relocation_R;
+        Eigen::Vector3d tmp_YPR;
+        tmp_YPR = Utility::R2ypr(relocation_R);
+        std::cout << "T is: " << relocation_T.transpose() << std::endl;
+        // std::cout << "R is: " << std::endl << relocation_R << std::endl;
+        std::cout << "YPR is: " << tmp_YPR.transpose() << std::endl;
+
+// 可视化
+#ifdef SHOW_RELOCATE
+        showLidarResult(prevKeyframeCloud, cureKeyframeCloud, "before icp refine");
+        showLidarResult(prevKeyframeCloud, result, "after icp refine");
+#endif
+
+        // pcl::PointCloud<PointType>::Ptr result_test(new pcl::PointCloud<PointType>());
+        // pcl::transformPointCloud(*queryCloud, *result_test, tCorrect.matrix());
+        // showLidarResult(result_test, result, "test the calculation of final pose");
+    }
+    else
+    {
+        // NDT Settings
+        static pcl::NormalDistributionsTransform<PointType, PointType> ndt;
+
+        ndt.setMaximumIterations(60);       // 设置最大迭代次数（算法终止条件）
+        ndt.setTransformationEpsilon(0.01); // 设置NDT迭代收敛阈值（算法终止条件）
+        ndt.setStepSize(0.5);               // 设置搜索步长
+        ndt.setResolution(2.5);             // 设置NDT网格分辨率，如果初始误差大于NDT分辨率，会导致NDT无法收敛
+
+        // Align clouds
+        ndt.setInputSource(cureKeyframeCloud);
+        ndt.setInputTarget(prevKeyframeCloud);
+        pcl::PointCloud<PointType>::Ptr result(new pcl::PointCloud<PointType>());
+        ndt.align(*result);
+
+        if (ndt.hasConverged() == false || ndt.getFitnessScore() > historyKeyframeFitnessScore)
+        {
+            ROS_INFO("RELOCATION: NDT fitness test failed (%f > %f)", ndt.getFitnessScore(), historyKeyframeFitnessScore);
+            return -1;
+        }
+        else
+        {
+            ROS_INFO("RELOCATION: NDT fitness test passed (%f <= %f)", ndt.getFitnessScore(), historyKeyframeFitnessScore);
+        }
+
+        // 计算重定位结果位姿
+        Eigen::Affine3f correctionLidarFrame;
+        correctionLidarFrame = ndt.getFinalTransformation();
+        // transform from world origin to wrong pose
+        Eigen::Affine3f tWrong = pclPointToAffine3f(tmp_relocation_pose);
+        // transform from world origin to corrected pose
+        Eigen::Affine3f tCorrect = correctionLidarFrame * tWrong;
+        std::cout << "refine relocate result success, the result is: " << std::endl;
+        // std::cout << tCorrect.matrix() << std::endl;
+
+        // 获取重定位结果
+        lastTransformation = tCorrect;
+        relocation_T = tCorrect.translation().cast<double>();
+        relocation_R = tCorrect.rotation().cast<double>();
+        location_T = relocation_T; // 重定位结果也要赋值给定位
+        location_R = relocation_R;
+        Eigen::Vector3d tmp_YPR;
+        tmp_YPR = Utility::R2ypr(relocation_R);
+        std::cout << "T is: " << relocation_T.transpose() << std::endl;
+        // std::cout << "R is: " << std::endl << relocation_R << std::endl;
+        std::cout << "YPR is: " << tmp_YPR.transpose() << std::endl;
+
+// 可视化
+#ifdef SHOW_RELOCATE
+        showLidarResult(prevKeyframeCloud, cureKeyframeCloud, "before ndt refine");
+        showLidarResult(prevKeyframeCloud, result, "after ndt refine");
+#endif
+    }
+
+    return 0;
+}

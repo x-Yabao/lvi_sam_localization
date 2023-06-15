@@ -65,8 +65,7 @@ private:
     void serialize(Archive &ar, const unsigned int version);
 
 private:
-    friend class Location;
-    friend class MapOptimization;
+    friend class mapOptimization;
     /************************ lidar information ****************************/
     std::vector<pcl::PointCloud<PointType>::Ptr> cloudKeyFrames;
     std::vector<pcl::PointCloud<PointType>::Ptr> cornerCloudKeyFrames;     

@@ -11,6 +11,7 @@ int main(int argc, char** argv)
 
     ROS_INFO("\033[1;32m----> Map Optimization Started.\033[0m");
 
+    MO.loadBinaryMap();
     // std::thread loopthread(&mapOptimization::loopClosureThread, &MO);
     // std::thread visualizeMapThread(&mapOptimization::visualizeGlobalMapThread, &MO);
     std::thread localizeInWorldThread(&mapOptimization::globalLocalizeThread, &MO);

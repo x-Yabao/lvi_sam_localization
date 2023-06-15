@@ -3,6 +3,8 @@
 #include "parameters.h"
 #include "utility/utility.h"
 #include "lvi_sam_localization/cloud_info.h"
+#include "MultiMap.h"
+#include "keyframe.h"
 
 #include <gtsam/geometry/Rot3.h>
 #include <gtsam/geometry/Pose3.h>
@@ -69,8 +71,28 @@ public:
     void globalLocalizeThread();
     void ICPLocalizeInitialize();
     void ICPscanMatchGlobal();
-    void keyFramesLoad();
     void initialpose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& pose_msg);
+
+    // 地图管理和服务接口(yabao)
+    int loadFolderMap();
+    int saveBinaryMap();
+    int loadBinaryMap();
+
+private:
+    // 视觉重定位功能实现
+    int visualRelocate();
+    int loadQueryPicture(bool relocate_test);
+    int detectLoop(KeyFrame* keyframe, int frame_index);
+    KeyFrame* getKeyFrame(int index);
+
+    // 激光重定位功能实现
+    int lidarRelocate();
+    int loadQueryCloud(bool relocate_test);
+    void loopFindNearKeyframesByIndex(pcl::PointCloud<PointType>::Ptr& nearKeyframes, const int& key, const int& searchNum);
+    void loopFindNearKeyframesByPose(pcl::PointCloud<PointType>::Ptr& nearKeyframes, const PointType& pose, const int& searchNum);
+    
+    // 点云配准验证
+    int refineRelocateResult();
 
 public:
     // gtsam
@@ -119,6 +141,11 @@ public:
     pcl::PointCloud<PointType>::Ptr laserCloudSurfLast;     // surf feature set from odoOptimization
     pcl::PointCloud<PointType>::Ptr laserCloudCornerLastDS; // downsampled corner featuer set from odoOptimization
     pcl::PointCloud<PointType>::Ptr laserCloudSurfLastDS;   // downsampled surf featuer set from odoOptimization
+    
+    pcl::PointCloud<PointType>::Ptr laserCloudLast;         // 当前点云（yabao)
+    pcl::PointCloud<PointType>::Ptr laserCloudLastDS;       // 当前点云下采样(yabao)
+    cv::Mat currentPicture;                                 // 当前图片（yabao)
+    bool imageAvailable;                                    // 图像是否可用（yabao)
 
     pcl::PointCloud<PointType>::Ptr laserCloudOri;
     pcl::PointCloud<PointType>::Ptr coeffSel;
@@ -203,4 +230,29 @@ public:
     geometry_msgs::PoseStamped poseOdomToMap;
     ros::Publisher pubOdomToMapPose;
     /* added by gc */
+
+/************************** added by yabao *****************************/
+public:
+    MultiMap* map;                                  // 先验地图
+    std::string binaryMapFile;
+
+    /************重定位数据结构**************/
+    pcl::PointCloud<PointType>::Ptr queryCloud;     // 重定位点云
+    KeyFrame* queryPicture;					        // 重定位图片关键帧 
+
+    // 重定位结果
+    Eigen::Vector3d tmp_relocation_T;               // 重定位粗位姿平移(lidar坐标系)
+    Eigen::Matrix3d tmp_relocation_R;               // 重定位粗位姿旋转(lidar坐标系)
+    PointTypePose tmp_relocation_pose;              // 重定位粗位姿
+    int relocation_lidar_index;                     // index为-1时根据位置提取局部地图，其他时根据index提取局部地图
+    Eigen::Vector3d relocation_T;                   // 重定位精位姿平移(可通过getRelocationResult()获得)
+    Eigen::Matrix3d relocation_R;                   // 重定位精位姿旋转
+
+    // 定位结果    
+    // PointTypePose tmp_pose;                      // 估计位姿，用于提取局部地图(用transformTobeMapped代替)
+    Eigen::Vector3d location_T;                     // 最终定位位移(可通过getLocationResult()获得)
+    Eigen::Matrix3d location_R;                     // 最终定位旋转
+    Eigen::Affine3f lastTransformation;             // 最终定位结果（精重定位完成后会赋值）
+    
+    pcl::KdTreeFLANN<PointType>::Ptr kdtreeLidarKeyPoses;
 };
