@@ -93,6 +93,9 @@ private:
     
     // 点云配准验证
     int refineRelocateResult();
+    
+    // 重定位初始化
+    void relocateInitialize();
 
 public:
     // gtsam
@@ -241,15 +244,14 @@ public:
     KeyFrame* queryPicture;					        // 重定位图片关键帧 
 
     // 重定位结果
-    Eigen::Vector3d tmp_relocation_T;               // 重定位粗位姿平移(lidar坐标系)
-    Eigen::Matrix3d tmp_relocation_R;               // 重定位粗位姿旋转(lidar坐标系)
-    PointTypePose tmp_relocation_pose;              // 重定位粗位姿
-    int relocation_lidar_index;                     // index为-1时根据位置提取局部地图，其他时根据index提取局部地图
-    Eigen::Vector3d relocation_T;                   // 重定位精位姿平移(可通过getRelocationResult()获得)
-    Eigen::Matrix3d relocation_R;                   // 重定位精位姿旋转
+    Eigen::Vector3d tmp_relocation_T;               // 粗重定位平移(lidar坐标系)
+    Eigen::Matrix3d tmp_relocation_R;               // 粗重定位旋转(lidar坐标系)
+    PointTypePose tmp_relocation_pose;              // 粗重定位位姿
+    int relocation_lidar_index = -1;                // index为-1时根据位置提取局部地图，其他时根据index提取局部地图
+    Eigen::Vector3d relocation_T;                   // 精重定位平移
+    Eigen::Matrix3d relocation_R;                   // 精重定位旋转
 
     // 定位结果    
-    // PointTypePose tmp_pose;                      // 估计位姿，用于提取局部地图(用transformTobeMapped代替)
     Eigen::Vector3d location_T;                     // 最终定位位移(可通过getLocationResult()获得)
     Eigen::Matrix3d location_R;                     // 最终定位旋转
     Eigen::Affine3f lastTransformation;             // 最终定位结果（精重定位完成后会赋值）

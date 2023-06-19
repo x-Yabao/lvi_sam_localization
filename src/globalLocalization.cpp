@@ -74,6 +74,9 @@ void mapOptimization::resetLIO()
     laserCloudCornerLastDS.reset(new pcl::PointCloud<PointType>()); // downsampled corner featuer set from odoOptimization
     laserCloudSurfLastDS.reset(new pcl::PointCloud<PointType>());   // downsampled surf featuer set from odoOptimization
 
+    laserCloudLast.reset(new pcl::PointCloud<PointType>());         // yabao
+    laserCloudLastDS.reset(new pcl::PointCloud<PointType>());       // yabao
+
     laserCloudOri.reset(new pcl::PointCloud<PointType>());
     coeffSel.reset(new pcl::PointCloud<PointType>());
 
@@ -103,6 +106,9 @@ void mapOptimization::resetLIO()
     }
 
     matP.setZero();
+
+    queryCloud.reset(new pcl::PointCloud<PointType>());                 // yabao
+    kdtreeLidarKeyPoses.reset(new pcl::KdTreeFLANN<PointType>());       // yabao
 }
 
 void mapOptimization::laserCloudInfoHandler(const lvi_sam_localization::cloud_infoConstPtr& msgIn)
@@ -116,6 +122,8 @@ void mapOptimization::laserCloudInfoHandler(const lvi_sam_localization::cloud_in
     cloudInfo = *msgIn;
     pcl::fromROSMsg(msgIn->cloud_corner,  *laserCloudCornerLast);
     pcl::fromROSMsg(msgIn->cloud_surface, *laserCloudSurfLast);
+    pcl::fromROSMsg(msgIn->cloud_deskewed, *laserCloudLast);        // yabao
+
 
     // yabao, get picture
     imageAvailable = cloudInfo.imageAvailable;
@@ -1027,8 +1035,8 @@ void mapOptimization::globalLocalizeThread()
         //avoid ICP using the same initial guess for many times
         if(initializedFlag == NonInitialized)
         {
-            ICPLocalizeInitialize();
-
+            //ICPLocalizeInitialize();
+            relocateInitialize();
         } 
         else if(initializedFlag == Initializing)
         {
@@ -1092,6 +1100,7 @@ void mapOptimization::ICPLocalizeInitialize()
     icp.setInputTarget(cloudGlobalMapDS);
     pcl::PointCloud<PointType>::Ptr unused_result(new pcl::PointCloud<PointType>());
     icp.align(*unused_result, ndt.getFinalTransformation());
+
     std::cout << "the pose before initializing is: x" << transformInTheWorld[3] << " y" << transformInTheWorld[4]
                 << " z" << transformInTheWorld[5] <<std::endl;
     std::cout << "the pose in odom before initializing is: x" << tranformOdomToWorld[3] << " y" << tranformOdomToWorld[4]
@@ -1103,6 +1112,7 @@ void mapOptimization::ICPLocalizeInitialize()
     std::cout<< "transformTobeMapped X_Y_Z: " << transformTobeMapped[3] << " " << transformTobeMapped[4] << " " << transformTobeMapped[5] << std::endl;
     Eigen::Affine3f T_thisPose6DInOdom = pclPointToAffine3f(thisPose6DInOdom);
 
+    // 初始化地图坐标系下的位姿
     Eigen::Affine3f T_thisPose6DInMap;
     T_thisPose6DInMap = icp.getFinalTransformation();
     float x_g, y_g, z_g, R_g, P_g, Y_g;
@@ -1114,11 +1124,10 @@ void mapOptimization::ICPLocalizeInitialize()
     transformInTheWorld[4] = y_g;
     transformInTheWorld[5] = z_g;
 
-
+    // 地图坐标系与odom坐标系的位姿变换
     Eigen::Affine3f transOdomToMap = T_thisPose6DInMap * T_thisPose6DInOdom.inverse();
     float deltax, deltay, deltaz, deltaR, deltaP, deltaY;
     pcl::getTranslationAndEulerAngles (transOdomToMap, deltax, deltay, deltaz, deltaR, deltaP, deltaY);
-
     mtxtranformOdomToWorld.lock();
     //renew tranformOdomToWorld
     tranformOdomToWorld[0] = deltaR;
@@ -1161,6 +1170,126 @@ void mapOptimization::ICPLocalizeInitialize()
 
     //cloudScanForInitialize.reset(new pcl::PointCloud<PointType>());
 
+}
+
+void mapOptimization::relocateInitialize()
+{
+    // 还没开始播包
+    // 和重定位有关的变量需要加锁
+    if(laserCloudLast->points.size() == 0)
+        return;
+
+    bool relocateSucceedFlag;
+
+    std::cout << "start relocate initialization" << std::endl;
+
+    if (0 && imageAvailable)
+    {
+        // 视觉激光融合重定位
+        // 1.加载重定位帧（赋值queryCloud和queryPicture)
+        loadQueryPicture(false);
+        loadQueryCloud(false);
+        // 2.粗重定位
+        if (visualRelocate() != 0)
+        {
+            if (lidarRelocate() != 0)
+            {
+                std::cout << "Visual-LiDAR fusion rough relocation failure!" << std::endl;
+                relocateSucceedFlag = false;
+                return;
+            }
+        }
+    }
+    else
+    {
+        // 激光重定位
+        loadQueryCloud(false);
+        if (lidarRelocate() != 0)
+        {
+            std::cout << "Image unavailable, LiDAR rough relocation failure!" << std::endl;
+            relocateSucceedFlag = false;
+            return;
+        }
+    }
+
+    // 3.精重定位
+    if (refineRelocateResult() != 0)
+    {
+        std::cout << "Refine rough result failure!" << std::endl;
+        relocateSucceedFlag = false;
+        return;
+    }
+
+    relocateSucceedFlag = true;
+
+    std::cout << "the pose before initializing is: x" << transformInTheWorld[3] << " y" << transformInTheWorld[4]
+                << " z" << transformInTheWorld[5] <<std::endl;
+    std::cout << "the pose in odom before initializing is: x" << tranformOdomToWorld[3] << " y" << tranformOdomToWorld[4]
+                << " z" << tranformOdomToWorld[5] <<std::endl;
+    // std::cout << "the icp score in initializing process is: " << icp.getFitnessScore() << std::endl;
+    // std::cout << "the pose after initializing process is: "<< icp.getFinalTransformation() << std::endl;
+
+    PointTypePose thisPose6DInOdom = trans2PointTypePose(transformTobeMapped);
+    std::cout<< "transformTobeMapped X_Y_Z: " << transformTobeMapped[3] << " " << transformTobeMapped[4] << " " << transformTobeMapped[5] << std::endl;
+    Eigen::Affine3f T_thisPose6DInOdom = pclPointToAffine3f(thisPose6DInOdom);
+
+    // 初始化地图坐标系下的位姿
+    Eigen::Affine3f T_thisPose6DInMap;
+    T_thisPose6DInMap = lastTransformation;
+    float x_g, y_g, z_g, R_g, P_g, Y_g;
+    pcl::getTranslationAndEulerAngles (T_thisPose6DInMap, x_g, y_g, z_g, R_g, P_g, Y_g);
+    transformInTheWorld[0] = R_g;
+    transformInTheWorld[1] = P_g;
+    transformInTheWorld[2] = Y_g;
+    transformInTheWorld[3] = x_g;
+    transformInTheWorld[4] = y_g;
+    transformInTheWorld[5] = z_g;
+
+    // 地图坐标系与odom坐标系的位姿变换
+    Eigen::Affine3f transOdomToMap = T_thisPose6DInMap * T_thisPose6DInOdom.inverse();
+    float deltax, deltay, deltaz, deltaR, deltaP, deltaY;
+    pcl::getTranslationAndEulerAngles (transOdomToMap, deltax, deltay, deltaz, deltaR, deltaP, deltaY);
+    mtxtranformOdomToWorld.lock();
+    //renew tranformOdomToWorld
+    tranformOdomToWorld[0] = deltaR;
+    tranformOdomToWorld[1] = deltaP;
+    tranformOdomToWorld[2] = deltaY;
+    tranformOdomToWorld[3] = deltax;
+    tranformOdomToWorld[4] = deltay;
+    tranformOdomToWorld[5] = deltaz;
+    mtxtranformOdomToWorld.unlock();
+    std::cout << "the pose of odom relative to Map: x" << tranformOdomToWorld[3] << " y" << tranformOdomToWorld[4]
+                << " z" << tranformOdomToWorld[5] <<std::endl;
+    
+    // 发布先验地图
+    // publishCloud(&pubLaserCloudInWorld, unused_result, timeLaserInfoStamp, "map");
+    publishCloud(&pubMapWorld, cloudGlobalMapDS, timeLaserInfoStamp, "map");
+
+    if (relocateSucceedFlag == false)
+    {
+        initializedFlag = Initializing;
+        std::cout << "Initializing Fail" << std::endl;
+        return;
+    } else{
+        initializedFlag = Initialized;
+        std::cout << "Initializing Succeed" << std::endl;
+        geometry_msgs::PoseStamped pose_odomTo_map;
+        tf::Quaternion q_odomTo_map = tf::createQuaternionFromRPY(deltaR, deltaP, deltaY);
+
+        pose_odomTo_map.header.stamp = timeLaserInfoStamp;
+        pose_odomTo_map.header.frame_id = "map";
+        pose_odomTo_map.pose.position.x = deltax; 
+        pose_odomTo_map.pose.position.y = deltay; 
+        pose_odomTo_map.pose.position.z = deltaz;
+        pose_odomTo_map.pose.orientation.x = q_odomTo_map.x();
+        pose_odomTo_map.pose.orientation.y = q_odomTo_map.y();
+        pose_odomTo_map.pose.orientation.z = q_odomTo_map.z();
+        pose_odomTo_map.pose.orientation.w = q_odomTo_map.w();
+        pubOdomToMapPose.publish(pose_odomTo_map);
+
+    }
+
+    return;
 }
 
 void mapOptimization::ICPscanMatchGlobal()
@@ -1842,3 +1971,4 @@ int mapOptimization::refineRelocateResult()
 
     return 0;
 }
+
