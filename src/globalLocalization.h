@@ -112,6 +112,7 @@ public:
     ros::Publisher pubLaserCloudSurround;
     ros::Publisher pubOdomAftMappedROS;
     ros::Publisher pubPath;
+    ros::Publisher pubMatchImg;
 
     ros::Publisher pubHistoryKeyFrames;
     ros::Publisher pubIcpKeyFrames;
@@ -149,6 +150,7 @@ public:
     pcl::PointCloud<PointType>::Ptr laserCloudLastDS;       // 当前点云下采样(yabao)
     cv::Mat currentPicture;                                 // 当前图片（yabao)
     bool imageAvailable;                                    // 图像是否可用（yabao)
+    std::mutex mtxRelocate;
 
     pcl::PointCloud<PointType>::Ptr laserCloudOri;
     pcl::PointCloud<PointType>::Ptr coeffSel;
@@ -247,7 +249,7 @@ public:
     Eigen::Vector3d tmp_relocation_T;               // 粗重定位平移(lidar坐标系)
     Eigen::Matrix3d tmp_relocation_R;               // 粗重定位旋转(lidar坐标系)
     PointTypePose tmp_relocation_pose;              // 粗重定位位姿
-    int relocation_lidar_index = -1;                // index为-1时根据位置提取局部地图，其他时根据index提取局部地图
+    int relocation_lidar_index;                     // index为-1时根据位置提取局部地图，其他时根据index提取局部地图
     Eigen::Vector3d relocation_T;                   // 精重定位平移
     Eigen::Matrix3d relocation_R;                   // 精重定位旋转
 

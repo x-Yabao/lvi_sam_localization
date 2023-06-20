@@ -15,6 +15,8 @@ mapOptimization::mapOptimization()
     pubLaserCloudSurround = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/mapping/map_global", 1);
     pubOdomAftMappedROS = nh.advertise<nav_msgs::Odometry> ("lio_sam/mapping/odometry", 1);
     pubPath = nh.advertise<nav_msgs::Path>("lio_sam/mapping/path", 1);
+    pubMatchImg = nh.advertise<sensor_msgs::Image>("match_image", 10);
+
 
     pubHistoryKeyFrames = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/mapping/icp_loop_closure_history_cloud", 1);
     pubIcpKeyFrames = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/mapping/icp_loop_closure_corrected_cloud", 1);
@@ -122,10 +124,10 @@ void mapOptimization::laserCloudInfoHandler(const lvi_sam_localization::cloud_in
     cloudInfo = *msgIn;
     pcl::fromROSMsg(msgIn->cloud_corner,  *laserCloudCornerLast);
     pcl::fromROSMsg(msgIn->cloud_surface, *laserCloudSurfLast);
-    pcl::fromROSMsg(msgIn->cloud_deskewed, *laserCloudLast);        // yabao
-
-
-    // yabao, get picture
+    
+    // yabao
+    mtxRelocate.lock();
+    pcl::fromROSMsg(msgIn->cloud_deskewed, *laserCloudLast);        
     imageAvailable = cloudInfo.imageAvailable;
     if (imageAvailable)
     {
@@ -133,6 +135,7 @@ void mapOptimization::laserCloudInfoHandler(const lvi_sam_localization::cloud_in
         ptr = cv_bridge::toCvCopy(msgIn->image, sensor_msgs::image_encodings::MONO8);
         currentPicture = ptr->image;
     }
+    mtxRelocate.unlock();
 
     /************************************added by gc*****************************/
     //if the sysytem is not initialized offer the first scan for the system to initialize
@@ -1035,12 +1038,13 @@ void mapOptimization::globalLocalizeThread()
         //avoid ICP using the same initial guess for many times
         if(initializedFlag == NonInitialized)
         {
-            //ICPLocalizeInitialize();
-            relocateInitialize();
+            //ICPLocalizeInitialize();      // 使用NDT和ICP初始化
+            relocateInitialize();           // 使用视觉激光融合重定位初始化
         } 
         else if(initializedFlag == Initializing)
         {
-            std::cout << "Offer A New Guess Please " << std::endl;
+            std::cout << "Offer A New Guess Please." << std::endl;
+            std::cout << "If you use relocation initialize, move the robot to a new place, and offer a new guess to activate relocation." << std::endl;
             //do nothing, wait for a new initial guess
             ros::Duration(1.0).sleep();
         }
@@ -1090,6 +1094,7 @@ void mapOptimization::ICPLocalizeInitialize()
     ndt.setInputTarget(cloudGlobalMapDS);
     pcl::PointCloud<PointType>::Ptr unused_result_0(new pcl::PointCloud<PointType>());
 
+    // 获取ndt初值
     PointTypePose thisPose6DInWorld = trans2PointTypePose(transformInTheWorld);
     Eigen::Affine3f T_thisPose6DInWorld = pclPointToAffine3f(thisPose6DInWorld);
     ndt.align(*unused_result_0, T_thisPose6DInWorld.matrix());
@@ -1108,6 +1113,7 @@ void mapOptimization::ICPLocalizeInitialize()
     std::cout << "the icp score in initializing process is: " << icp.getFitnessScore() << std::endl;
     std::cout << "the pose after initializing process is: "<< icp.getFinalTransformation() << std::endl;
 
+    // 获取里程计位姿
     PointTypePose thisPose6DInOdom = trans2PointTypePose(transformTobeMapped);
     std::cout<< "transformTobeMapped X_Y_Z: " << transformTobeMapped[3] << " " << transformTobeMapped[4] << " " << transformTobeMapped[5] << std::endl;
     Eigen::Affine3f T_thisPose6DInOdom = pclPointToAffine3f(thisPose6DInOdom);
@@ -1176,14 +1182,17 @@ void mapOptimization::relocateInitialize()
 {
     // 还没开始播包
     // 和重定位有关的变量需要加锁
-    if(laserCloudLast->points.size() == 0)
+    mtxRelocate.lock();
+    int sz = laserCloudLast->points.size();
+    mtxRelocate.unlock();
+    if(sz == 0)
         return;
 
-    bool relocateSucceedFlag;
+    bool relocateSucceedFlag = true;
 
     std::cout << "start relocate initialization" << std::endl;
 
-    if (0 && imageAvailable)
+    if (imageAvailable)
     {
         // 视觉激光融合重定位
         // 1.加载重定位帧（赋值queryCloud和queryPicture)
@@ -1208,24 +1217,21 @@ void mapOptimization::relocateInitialize()
         {
             std::cout << "Image unavailable, LiDAR rough relocation failure!" << std::endl;
             relocateSucceedFlag = false;
-            return;
         }
     }
 
     // 3.精重定位
-    if (refineRelocateResult() != 0)
+    if (relocateSucceedFlag && refineRelocateResult() != 0)
     {
         std::cout << "Refine rough result failure!" << std::endl;
         relocateSucceedFlag = false;
-        return;
     }
 
-    relocateSucceedFlag = true;
 
-    std::cout << "the pose before initializing is: x" << transformInTheWorld[3] << " y" << transformInTheWorld[4]
-                << " z" << transformInTheWorld[5] <<std::endl;
-    std::cout << "the pose in odom before initializing is: x" << tranformOdomToWorld[3] << " y" << tranformOdomToWorld[4]
-                << " z" << tranformOdomToWorld[5] <<std::endl;
+    // std::cout << "the pose before initializing is: x" << transformInTheWorld[3] << " y" << transformInTheWorld[4]
+    //             << " z" << transformInTheWorld[5] <<std::endl;
+    // std::cout << "the pose in odom before initializing is: x" << tranformOdomToWorld[3] << " y" << tranformOdomToWorld[4]
+    //             << " z" << tranformOdomToWorld[5] <<std::endl;
     // std::cout << "the icp score in initializing process is: " << icp.getFitnessScore() << std::endl;
     // std::cout << "the pose after initializing process is: "<< icp.getFinalTransformation() << std::endl;
 
@@ -1262,7 +1268,9 @@ void mapOptimization::relocateInitialize()
                 << " z" << tranformOdomToWorld[5] <<std::endl;
     
     // 发布先验地图
-    // publishCloud(&pubLaserCloudInWorld, unused_result, timeLaserInfoStamp, "map");
+    pcl::PointCloud<PointType>::Ptr unused_result(new pcl::PointCloud<PointType>());
+    pcl::transformPointCloud(*queryCloud, *unused_result, lastTransformation.matrix());
+    publishCloud(&pubLaserCloudInWorld, unused_result, timeLaserInfoStamp, "map");
     publishCloud(&pubMapWorld, cloudGlobalMapDS, timeLaserInfoStamp, "map");
 
     if (relocateSucceedFlag == false)
@@ -1521,7 +1529,6 @@ int mapOptimization::loadBinaryMap()
 }
 
 /*********************** visual relocation *******************************/
-
 int mapOptimization::visualRelocate()
 {
     // 1.词袋重定位
@@ -1539,7 +1546,7 @@ int mapOptimization::visualRelocate()
         cv::hconcat(query_img, old_img, show_img);
         // cv::imshow("query picture - old picture", show_img);
         // cv::waitKey();
-        std::cout << "visual coarse relocate success!" << std::endl;
+        std::cout << "visual rough relocate success!" << std::endl;
         return 0;
 #endif
 
@@ -1589,17 +1596,23 @@ int mapOptimization::visualRelocate()
             tmp_relocation_T(1) = tmp_relocation_pose.y;
             tmp_relocation_T(2) = tmp_relocation_pose.z;
             Eigen::Vector3d tmp_relocation_YPR;
-            tmp_relocation_YPR << tmp_relocation_pose.yaw / M_PI * 180,
-                tmp_relocation_pose.pitch / M_PI * 180,
-                tmp_relocation_pose.roll / M_PI * 180;
+            tmp_relocation_YPR <<   tmp_relocation_pose.yaw / M_PI * 180,
+                                    tmp_relocation_pose.pitch / M_PI * 180,
+                                    tmp_relocation_pose.roll / M_PI * 180;
             tmp_relocation_R = Utility::ypr2R(tmp_relocation_YPR);
 
+            // 5.视觉粗重定位成功，输出结果
             ROS_INFO("Visual rough relocation success!");
             std::cout << "T is: " << tmp_relocation_T.transpose() << std::endl;
             std::cout << "YPR is: " << tmp_relocation_YPR.transpose() << std::endl;
-            std::cout << "image time stamp: " << fixed << setprecision(5) << image_time << std::endl; // 不要科学计数法
-            std::cout << "lidar time stamp: " << fixed << setprecision(5) << cloud_time << std::endl; // 不要科学计数法
-
+            // std::cout << "image time stamp: " << fixed << setprecision(5) << image_time << std::endl; 
+            // std::cout << "lidar time stamp: " << fixed << setprecision(5) << cloud_time << std::endl; 
+            cv::Mat query_img = queryPicture->image;
+            cv::Mat old_img = old_kf->image;
+            cv::Mat show_img;
+            cv::hconcat(query_img, old_img, show_img);
+            sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", show_img).toImageMsg();
+            pubMatchImg.publish(msg);
             return 0;
         }
     }
@@ -1624,8 +1637,11 @@ int mapOptimization::loadQueryPicture(bool relocate_test)
     cv::Mat image;
     if (relocate_test)
         image = cv::imread(QUERY_IMAGE_PATH, 0);
-    else
+    else {
+        mtxRelocate.lock();
         image = currentPicture.clone();
+        mtxRelocate.unlock();
+    }
 
     if (image.empty())
     {
@@ -1674,7 +1690,7 @@ int mapOptimization::detectLoop(KeyFrame *keyframe, int frame_index)
 KeyFrame *mapOptimization::getKeyFrame(int index)
 {
     // unique_lock<mutex> lock(m_keyframelist);
-    list<KeyFrame *>::iterator it = map->keyframelist.begin();
+    list<KeyFrame*>::iterator it = map->keyframelist.begin();
     for (; it != map->keyframelist.end(); it++)
     {
         if ((*it)->index == index)
@@ -1725,9 +1741,9 @@ int mapOptimization::lidarRelocate()
         tmp_relocation_T(1) = tmp_relocation_pose.y;
         tmp_relocation_T(2) = tmp_relocation_pose.z;
         Eigen::Vector3d tmp_relocation_YPR;
-        tmp_relocation_YPR << tmp_relocation_pose.yaw / M_PI * 180,
-            tmp_relocation_pose.pitch / M_PI * 180,
-            tmp_relocation_pose.roll / M_PI * 180;
+        tmp_relocation_YPR <<   tmp_relocation_pose.yaw / M_PI * 180,
+                                tmp_relocation_pose.pitch / M_PI * 180,
+                                tmp_relocation_pose.roll / M_PI * 180;
         tmp_relocation_R = Utility::ypr2R(tmp_relocation_YPR);
 
         std::cout << "T is: " << tmp_relocation_T.transpose() << std::endl;
@@ -1771,7 +1787,9 @@ int mapOptimization::loadQueryCloud(bool relocate_test)
     }
     else
     {
+        mtxRelocate.lock();
         *queryCloud = *laserCloudLast;
+        mtxRelocate.unlock();
     }
 
     map->scManager.makeAndSaveScancontextAndKeys(*queryCloud);
@@ -1901,7 +1919,6 @@ int mapOptimization::refineRelocateResult()
         Eigen::Vector3d tmp_YPR;
         tmp_YPR = Utility::R2ypr(relocation_R);
         std::cout << "T is: " << relocation_T.transpose() << std::endl;
-        // std::cout << "R is: " << std::endl << relocation_R << std::endl;
         std::cout << "YPR is: " << tmp_YPR.transpose() << std::endl;
 
 // 可视化
@@ -1959,7 +1976,6 @@ int mapOptimization::refineRelocateResult()
         Eigen::Vector3d tmp_YPR;
         tmp_YPR = Utility::R2ypr(relocation_R);
         std::cout << "T is: " << relocation_T.transpose() << std::endl;
-        // std::cout << "R is: " << std::endl << relocation_R << std::endl;
         std::cout << "YPR is: " << tmp_YPR.transpose() << std::endl;
 
 // 可视化
