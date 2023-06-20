@@ -18,51 +18,6 @@ std::string padZeros(int val, int num_digits) {
     return out.str();
 }
 
-
-#if defined(NCLT)
-int _loadBINFile(std::string infile, pcl::PointCloud<pcl::PointXYZI> &cloud){
-    // Load point cloud
-    std::fstream input(infile.c_str(), std::ios::in | std::ios::binary);
-    if(!input.good()){
-        std::cerr << "Could not read file: " << infile << std::endl;
-        return -1;
-    }
-    input.seekg(0, std::ios::beg);
-
-    pcl::PointCloud<pcl::PointXYZI>::Ptr pointCloud (new pcl::PointCloud<pcl::PointXYZI>);
-
-    int i;
-    for (i = 0; input.good() && !input.eof(); i++) {
-        pcl::PointXYZI point;
-
-        unsigned short u_x, u_y, u_z;
-        unsigned char u_i, u_l;
-        input.read((char *) &u_x, sizeof(unsigned short));
-        input.read((char *) &u_y, sizeof(unsigned short));
-        input.read((char *) &u_z, sizeof(unsigned short));
-        input.read((char *) &u_i, sizeof(unsigned char));
-        input.read((char *) &u_l, sizeof(unsigned char));
-
-        float scaling = 0.005;
-        float offset = -100.0;
-        float x, y, z;
-        x = u_x * scaling + offset;
-        y = u_y * scaling + offset;
-        z = u_z * scaling + offset;
-
-        point.x = x;
-        point.y = y;
-        point.z = z;
-        point.intensity = i;
-        pointCloud->push_back(point);
-    }
-    input.close();
-
-    cloud = *pointCloud;
-
-    return 0;
-}
-#else
 int _loadBINFile(std::string infile, pcl::PointCloud<pcl::PointXYZI> &cloud){
     // Load point cloud
     std::fstream input(infile.c_str(), std::ios::in | std::ios::binary);
@@ -88,8 +43,6 @@ int _loadBINFile(std::string infile, pcl::PointCloud<pcl::PointXYZI> &cloud){
 
     return 0;
 }
-#endif
-
 
 void CameraFrame2LidarFrame(const Eigen::Vector3d& camera_T, const Eigen::Matrix3d& camera_R,
                             Eigen::Vector3d& lidar_T, Eigen::Matrix3d& lidar_R)

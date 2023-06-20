@@ -60,7 +60,6 @@
 
 
 // #define SHOW_RELOCATE             //if show the relocation result, please cancle comment
-// #define NCLT                      //if use NCLT dataset, please cancle comment
 
 /*************************** lidar parameters ***************************/
 

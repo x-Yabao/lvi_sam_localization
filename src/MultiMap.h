@@ -46,7 +46,6 @@ public:
     int loadVisualMap();
 
     int testMap();
-    int buildNCLTMap();
     
 private:
     int loadCloudKeyFrames();   // 加载点云关键帧

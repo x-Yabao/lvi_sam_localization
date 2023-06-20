@@ -1537,19 +1537,6 @@ int mapOptimization::visualRelocate()
     {
         KeyFrame *old_kf = getKeyFrame(loop_index);
 
-#ifdef NCLT
-        // NCLT视觉重定位不做几何验证
-        printf(" %d detect loop with %d \n", queryPicture->index, loop_index);
-        cv::Mat query_img = queryPicture->image;
-        cv::Mat old_img = old_kf->image;
-        cv::Mat show_img;
-        cv::hconcat(query_img, old_img, show_img);
-        // cv::imshow("query picture - old picture", show_img);
-        // cv::waitKey();
-        std::cout << "visual rough relocate success!" << std::endl;
-        return 0;
-#endif
-
         // 2.几何验证
         // 视觉几何验证似乎不是必要的，因为后面有激光的验证了
         Eigen::Vector3d queryPicture_T;
@@ -1649,11 +1636,6 @@ int mapOptimization::loadQueryPicture(bool relocate_test)
         return -1;
     }
 
-#ifdef NCLT
-    cv::transpose(image, image);
-    cv::flip(image, image, 1); // 90度旋转
-#endif
-
     queryPicture = new KeyFrame(time_stamp, frame_index, T, R,
                                 image, point_3d, point_2d_uv, point_2d_normal, point_id, sequence);
     std::cout << "Load the query picture success!" << std::endl;
@@ -1727,11 +1709,6 @@ int mapOptimization::lidarRelocate()
             return -1;
         }
         ROS_INFO("LiDAR rough relocation success, SC loop found: %d!", loopKeyPre);
-
-#ifdef NCLT
-        // NCLT数据集只用SC重定位，不取粗位姿了
-        return 0;
-#endif
 
         // 3.得到粗位姿，以找到的lidar帧作为粗位姿，并在yaw上做一点处理
         tmp_relocation_pose = map->cloudKeyPoses6D->points[loopKeyPre];

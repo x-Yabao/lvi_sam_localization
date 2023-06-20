@@ -1,23 +1,25 @@
 <launch>
 
-    <arg name="project" default="lvi_sam_location_ros"/>
+    <arg name="project" default="lvi_sam_localization"/>
+    
+    <!-- Parameters -->
+    <rosparam file="$(find lvi_sam_localization)/config/m2dgr/params_lidar.yaml" command="load"/>
+    <rosparam file="$(find lvi_sam_localization)/config/m2dgr/params_camera.yaml" command="load"/>
+    <rosparam file="$(find lvi_sam_localization)/config/m2dgr/params_function.yaml" command="load"/>
 
-    <!-- param -->
-    <rosparam file="$(find lvi_sam_location_ros)/config/m2dgr/params_lidar.yaml" command="load"/>
-    <rosparam file="$(find lvi_sam_location_ros)/config/m2dgr/params_camera.yaml" command="load"/>
-    <rosparam file="$(find lvi_sam_location_ros)/config/m2dgr/params_function.yaml" command="load"/>
+    <!--- LOAM -->
+    <include file="$(find lvi_sam_localization)/launch/include/module_relocolize.launch" />
 
-    <!-- Run Rviz -->
-    <!-- <node pkg="rviz" type="rviz" name="$(arg project)_rviz" args="-d $(find lvi_sam_location_ros)/launch/config/rviz.rviz" /> -->
+    <!--- Robot State TF -->
+    <include file="$(find lvi_sam_localization)/launch/include/module_robot_state_publisher.launch" />
 
-    <!-- Run LVI-SAM-LOCATION-->
-    <node pkg="$(arg project)" type="imageProjectionNode" name="imageProjectionNode" output="screen" respawn="true"/>
-    <node pkg="$(arg project)" type="featureExtractionNode" name="featureExtractionNode" output="screen" respawn="true"/>
-    <node pkg="$(arg project)" type="mapOptimizationNode" name="mapOptimizationNode" output="screen" respawn="true"/>
-    <!-- <node pkg="$(arg project)" type="imuPreintegrationNode" name="imuPreintegrationNode" output="screen" respawn="true"/> -->
+    <!--- Run Navsat -->
+    <include file="$(find lvi_sam_localization)/launch/include/module_navsat.launch" />
 
-    <node pkg="$(arg project)" type="tunningNode" name="tunningNode" output="screen" respawn="true"/>
+    <!--- Run Rviz-->
+    <include file="$(find lvi_sam_localization)/launch/include/module_rviz.launch" />
 
     <!-- Image conversion -->
     <node pkg="image_transport" type="republish" name="republish" args="compressed in:=/camera/color/image_raw raw out:=/camera/color/image_raw" output="screen" respawn="true"/>
+
 </launch>
