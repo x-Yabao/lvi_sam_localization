@@ -114,10 +114,10 @@ add_dependencies(globalLocalizationNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAM
 target_compile_options(globalLocalizationNode PRIVATE ${OpenMP_CXX_FLAGS})
 target_link_libraries(globalLocalizationNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS} ${OpenMP_CXX_FLAGS})
 
-#add_executable(mapOptimizationNode examples/node/mapOptimizationNode.cpp)
-#add_dependencies(mapOptimizationNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
-#target_compile_options(mapOptimizationNode PRIVATE ${OpenMP_CXX_FLAGS})
-#target_link_libraries(mapOptimizationNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS} ${OpenMP_CXX_FLAGS})
+add_executable(buildBinaryMap examples/build_map/buildBinaryMap.cpp)
+add_dependencies(buildBinaryMap ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+target_compile_options(buildBinaryMap PRIVATE ${OpenMP_CXX_FLAGS})
+target_link_libraries(buildBinaryMap slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS} ${OpenMP_CXX_FLAGS})
 
 add_executable(sysInfoNode examples/node/sysInfoNode.cpp)
 add_dependencies(sysInfoNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
