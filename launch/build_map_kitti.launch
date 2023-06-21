@@ -1,0 +1,12 @@
+<launch>
+
+    <arg name="project" default="lvi_sam_localization"/>
+    
+    <!-- Parameters -->
+    <rosparam file="$(find lvi_sam_localization)/config/kitti/params_lidar.yaml" command="load"/>
+    <rosparam file="$(find lvi_sam_localization)/config/kitti/params_camera.yaml" command="load"/>
+    <rosparam file="$(find lvi_sam_localization)/config/kitti/params_function.yaml" command="load"/>
+
+    <node pkg="$(arg project)" type="buildBinaryMap" name="buildBinaryMap" output="screen" respawn="true"/>
+
+</launch>

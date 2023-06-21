@@ -40,6 +40,8 @@
 #include <pcl_conversions/pcl_conversions.h>
 
 #include <ros/ros.h>
+#include <ros/package.h>
+
 #include <std_msgs/Header.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/String.h>
@@ -185,10 +187,6 @@ extern int lidar_keyFrame_num;
 extern std::string QUERY_PATH;
 extern std::string QUERY_LIDAR_PATH;
 extern std::string QUERY_IMAGE_PATH;
-
-extern std::string DATASET_PATH;
-extern int START_FRAME;
-extern int END_FRAME;
 
 extern int RELOCATE_METHOD;
 extern std::string ENV_LIDAR_PATH;

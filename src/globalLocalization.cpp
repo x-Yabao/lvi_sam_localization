@@ -1,7 +1,5 @@
 #include "globalLocalization.h"
 
-std::string savePCDDirectory = "/output/lio-sam/gate03/";
-
 mapOptimization::mapOptimization()
 {
     binaryMapFile = binarymapName;  // yabao
@@ -1018,7 +1016,7 @@ void mapOptimization::publishFrames()
 // Todo: (1) ICP or matching point to edge and surface?  (2) global_pcd or whole keyframes
 void mapOptimization::cloudGlobalLoad()
 {
-    pcl::io::loadPCDFile(std::getenv("HOME") + savePCDDirectory + "GlobalMap.pcd", *cloudGlobalMap);
+    pcl::io::loadPCDFile(loading_path + "/lidar/cloudGlobal.pcd", *cloudGlobalMap);
 
     pcl::PointCloud<PointType>::Ptr cloud_temp(new pcl::PointCloud<PointType>());
     downSizeFilterICP.setInputCloud(cloudGlobalMap);

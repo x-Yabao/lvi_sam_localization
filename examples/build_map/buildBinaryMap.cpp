@@ -16,5 +16,8 @@ int main(int argc, char** argv)
     MO.loadFolderMap();
     MO.saveBinaryMap();
 
+    std::cout << "Map saved. Please press Ctrl + C to finish." << std::endl;
+    ros::spin();
+
     return 0;
 }

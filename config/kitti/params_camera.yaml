@@ -1,8 +1,5 @@
 image_topic: "/kitti/camera_gray_left/image_raw"
 
-VOC_PATH: /home/yabao/slam/lvi_sam_location/support_files/brief_k10L6.bin
-BRIEF_PATTERN_FILE: /home/yabao/slam/lvi_sam_location/support_files/brief_pattern.yml
-
 DEBUG_IMAGE: 1
 COL: 1226
 ROW: 370

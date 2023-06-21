@@ -126,10 +126,6 @@ std::string QUERY_PATH;
 std::string QUERY_LIDAR_PATH;
 std::string QUERY_IMAGE_PATH;
 
-std::string DATASET_PATH;
-int START_FRAME;
-int END_FRAME;
-
 int RELOCATE_METHOD;
 std::string ENV_LIDAR_PATH;
 float DENSE_DIS;
@@ -217,8 +213,13 @@ void readCameraParameters()
 {
     ros::param::get("image_topic", image_topic);
 
-    ros::param::get("VOC_PATH", VOC_PATH);
-    ros::param::get("BRIEF_PATTERN_FILE", BRIEF_PATTERN_FILE);
+    // ros::param::get("VOC_PATH", VOC_PATH);
+    // ros::param::get("BRIEF_PATTERN_FILE", BRIEF_PATTERN_FILE);
+    std::string pkg_path = ros::package::getPath("lvi_sam_localization");
+    VOC_PATH = pkg_path + "/support_files/brief_k10L6.bin"; 
+    BRIEF_PATTERN_FILE = pkg_path + "/support_files/brief_pattern.yml"; 
+    // std::cout << "VOC_PATH" << VOC_PATH << std::endl;
+    // std::cout << "BRIEF_PATTERN_FILE" << BRIEF_PATTERN_FILE << std::endl;
 
     ros::param::get("DEBUG_IMAGE", DEBUG_IMAGE);
     ros::param::get("COL", COL);
@@ -268,18 +269,15 @@ void readCameraParameters()
 
 void readFunctionParameters()
 {
-    ros::param::get("POSE_GRAPH_SAVE_PATH", POSE_GRAPH_SAVE_PATH);
+    //ros::param::get("POSE_GRAPH_SAVE_PATH", POSE_GRAPH_SAVE_PATH);
     ros::param::get("loading_path", loading_path);
+    POSE_GRAPH_SAVE_PATH = loading_path + "/camera/pose_graph/";
     ros::param::get("binarymapName", binarymapName);
     ros::param::get("lidar_keyFrame_num", lidar_keyFrame_num);
 
     ros::param::get("QUERY_PATH", QUERY_PATH);
     ros::param::get("QUERY_LIDAR_PATH", QUERY_LIDAR_PATH);
     ros::param::get("QUERY_IMAGE_PATH", QUERY_IMAGE_PATH);
-
-    ros::param::get("DATASET_PATH", DATASET_PATH);
-    ros::param::get("START_FRAME", START_FRAME);
-    ros::param::get("END_FRAME", END_FRAME);
 
     ros::param::get("RELOCATE_METHOD", RELOCATE_METHOD);
     ros::param::get("ENV_LIDAR_PATH", ENV_LIDAR_PATH);

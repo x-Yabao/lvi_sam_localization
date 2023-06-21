@@ -1,19 +1,14 @@
 # file map -> binary map
-POSE_GRAPH_SAVE_PATH: "/home/yabao/output/M2DGR/gate_03/camera/pose_graph/"     # visual map
+#POSE_GRAPH_SAVE_PATH: "/home/yabao/output/M2DGR/gate_03/camera/pose_graph/"     # visual map
 loading_path: "/home/yabao/output/M2DGR/gate_03"                                # lidar map
-binarymapName: "/media/yabao/TOSHIBA1/output/M2DGR/with_corner_surf/gate_03_map.bin"       # binary map
-lidar_keyFrame_num: 1269                                                         # lidar关键帧数
+#binarymapName: "/media/yabao/TOSHIBA1/output/M2DGR/with_corner_surf/gate_03_map.bin"       # binary map
+binarymapName: "/media/yabao/TOSHIBA1/output/gate_03_map.bin"       # binary map
+lidar_keyFrame_num: 197                                                         # lidar关键帧数
 
 # relocation
 QUERY_PATH: "/media/yabao/TOSHIBA1/Datasets/M2DGR/rosbag2file/gate_02"
 QUERY_LIDAR_PATH: ""
 QUERY_IMAGE_PATH: ""
-
-# location
-# use in run_kitti.cpp and run_m2dgr.cpp
-DATASET_PATH: "/media/yabao/TOSHIBA1/Datasets/M2DGR/rosbag2file/street_06"
-START_FRAME: 500
-END_FRAME: 3000       #street_06: 4906
 
 # test
 # 0:激光视觉融合重定位；1:视觉重定位；2：激光重定位 

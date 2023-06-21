@@ -9,12 +9,6 @@ QUERY_PATH: "/media/yabao/TOSHIBA1/Datasets/KITTI/raw_data/2011_09_30_drive_0027
 QUERY_LIDAR_PATH: ""
 QUERY_IMAGE_PATH: ""
 
-# location
-# use in run_kitti.cpp and run_m2dgr.cpp
-DATASET_PATH: "/media/yabao/TOSHIBA1/Datasets/KITTI/raw_data/2011_09_30_drive_0027_07/2011_09_30/2011_09_30_drive_0027_sync" # raw data
-START_FRAME: 0
-END_FRAME:  100             # 07:1106(raw data),1101(odometry)
-
 # test
 # 0:激光视觉融合重定位；1:视觉重定位；2：激光重定位 
 RELOCATE_METHOD: 0

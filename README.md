@@ -1,5 +1,9 @@
 # LVI-SAM-LOCALIZATION
-A simple version of system that can relocalize in a built map is developed in this repository. The sysytem is bsed on LVI-SAM.
+A simple version of system that can localize in a built map is developed in this repository. The sysytem is based on LVI-SAM. Through **Visual-LiDAR Fusion Relocalization**, the system can launch anywhere in the built map. A video of the demonstration of the method can be found on [YouTube]().
+
+<p align='center'>
+    <img src="./doc/fig/localization.png" alt="drawing" width="800"/>
+</p>
 
 ---
 
@@ -16,9 +20,14 @@ cd ..
 catkin_make
 ```
 
-## Prepare
-1. Firstly, you need to run [lvi-sam-savemap](https://github.com/x-Yabao/lvi_sam_savemap), and then save the map in a folder.
-2. Change the map to bin format.
+## Prepare a built map
+1. Fisrtly, you need to **prepare a built map**. Please run our another work [lvi-sam-savemap](https://github.com/x-Yabao/lvi_sam_savemap) to build and save the map in a folder.
+2. Change the above map to binary format, so that we can reduce the map load time.
+   
+   - Run the launch file:
+    ```
+    roslaunch lvi_sam_localization build_map.launch
+    ```
 
 
 ## Run the package
@@ -34,7 +43,7 @@ roslaunch lvi_sam_localization run_m2dgr.launch
 rosbag play your-bag.bag
 ```
 
-A video of the demonstration of the method can be found on [YouTube](https://youtu.be/PRsH8SpuSIc).
+
 
 
 

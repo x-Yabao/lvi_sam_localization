@@ -10,6 +10,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 find_package(catkin REQUIRED COMPONENTS
   tf
   roscpp
+  roslib
   std_msgs
   sensor_msgs
   geometry_msgs
