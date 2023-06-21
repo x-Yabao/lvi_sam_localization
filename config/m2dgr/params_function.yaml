@@ -1,9 +1,7 @@
 # file map -> binary map
-#POSE_GRAPH_SAVE_PATH: "/home/yabao/output/M2DGR/gate_03/camera/pose_graph/"     # visual map
-loading_path: "/home/yabao/output/M2DGR/gate_03"                                # lidar map
-#binarymapName: "/media/yabao/TOSHIBA1/output/M2DGR/with_corner_surf/gate_03_map.bin"       # binary map
-binarymapName: "/media/yabao/TOSHIBA1/output/gate_03_map.bin"       # binary map
-lidar_keyFrame_num: 197                                                         # lidar关键帧数
+loading_path: "/home/yabao/output/M2DGR/gate_03"                                          # file map path
+binarymapName: "/media/yabao/TOSHIBA1/output/M2DGR/with_corner_surf/gate_03_map.bin"      # binary map
+lidar_keyFrame_num: 197                                                                   # lidar关键帧数
 
 # relocation
 QUERY_PATH: "/media/yabao/TOSHIBA1/Datasets/M2DGR/rosbag2file/gate_02"

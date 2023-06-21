@@ -1,6 +1,5 @@
 # file map -> binary map
-POSE_GRAPH_SAVE_PATH: "/home/yabao/output/KITTI/2011_09_30_drive_0027_07/camera/pose_graph/"     # visual map
-loading_path: "/home/yabao/output/KITTI/2011_09_30_drive_0027_07"                                # lidar map
+loading_path: "/home/yabao/output/KITTI/2011_09_30_drive_0027_07"                                # file map path
 binarymapName: "/media/yabao/TOSHIBA1/output/KITTI/with_corner_surf/2011_09_30_drive_0027_07_map.bin"                                                # binary map (save name and load name)
 lidar_keyFrame_num: 424                                                                          # lidar关键帧数
 
