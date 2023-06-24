@@ -14,7 +14,7 @@ mapOptimization::mapOptimization()
     pubOdomAftMappedROS = nh.advertise<nav_msgs::Odometry> ("lio_sam/mapping/odometry", 1);
     pubPath = nh.advertise<nav_msgs::Path>("lio_sam/mapping/path", 1);
     pubMatchImg = nh.advertise<sensor_msgs::Image>("match_image", 10);
-    pubInitialInfo = nh.advertise<std_msgs::String>("info/initial_method", 5);
+    pubIniMethod = nh.advertise<std_msgs::String>("info/initialization_method", 5);
 
     pubHistoryKeyFrames = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/mapping/icp_loop_closure_history_cloud", 1);
     pubIcpKeyFrames = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/mapping/icp_loop_closure_corrected_cloud", 1);
@@ -1190,9 +1190,6 @@ void mapOptimization::relocateInitialize()
 
     std::cout << "start relocate initialization" << std::endl;
 
-    std_msgs::String initial_msg;
-    std::string initial_info;
-
     if (imageAvailable)
     {
         // 视觉激光融合重定位
@@ -1273,25 +1270,27 @@ void mapOptimization::relocateInitialize()
     publishCloud(&pubLaserCloudInWorld, unused_result, timeLaserInfoStamp, "map");
     publishCloud(&pubMapWorld, cloudGlobalMapDS, timeLaserInfoStamp, "map");
 
+    std_msgs::String ini_msg;
+    std::string ini_info;
+
     if (relocateSucceedFlag == false)
     {
         initializedFlag = Initializing;
         std::cout << "Initializing Fail" << std::endl;
-        initial_info = "Relocation Fail";
-        initial_msg.data = initial_info.c_str();
-        pubInitialInfo.publish(initial_msg);
-        return;
+        ini_info = "Relocation Fail";
+        ini_msg.data = ini_info.c_str();
+        pubIniMethod.publish(ini_msg);
     } else{
         initializedFlag = Initialized;
         std::cout << "Initializing Succeed" << std::endl;
         if(relocation_method == 1)
-            initial_info = "Visual Relocation";
+            ini_info = "Visual Relocation";
         else if(relocation_method == 2)
-            initial_info = "LiDAR Relocation";
+            ini_info = "LiDAR Relocation";
         else
-            initial_info = "Unknow";
-        initial_msg.data = initial_info.c_str();
-        pubInitialInfo.publish(initial_msg);
+            ini_info = "Unknown";
+        ini_msg.data = ini_info.c_str();
+        pubIniMethod.publish(ini_msg);
 
         geometry_msgs::PoseStamped pose_odomTo_map;
         tf::Quaternion q_odomTo_map = tf::createQuaternionFromRPY(deltaR, deltaP, deltaY);
