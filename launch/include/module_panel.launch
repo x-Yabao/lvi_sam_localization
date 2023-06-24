@@ -1,0 +1,5 @@
+<launch>
+
+      <node pkg="lvi_sam_localization" type="panel.py" name="panel" respawn="true" />
+
+</launch>

@@ -19,6 +19,9 @@
     <!--- Run Rviz-->
     <include file="$(find lvi_sam_localization)/launch/include/module_rviz.launch" />
 
+    <!--- Run Panel-->
+    <include file="$(find lvi_sam_localization)/launch/include/module_panel.launch" />
+
     <!-- Image conversion -->
     <node pkg="image_transport" type="republish" name="republish" args="compressed in:=/camera/color/image_raw raw out:=/camera/color/image_raw" output="screen" respawn="true"/>
 
