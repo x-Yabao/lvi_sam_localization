@@ -500,14 +500,14 @@ Visualization Manager:
           Background Alpha: 0.800000011920929
           Background Color: 0; 0; 0
           Class: jsk_rviz_plugin/String
-          Enabled: true
+          Enabled: false
           Foreground Alpha: 0.800000011920929
           Foreground Color: 204; 0; 0
           Name: String
           Overtake Color Properties: true
           Overtake Position Properties: true
           Topic: /info/env_density
-          Value: true
+          Value: false
           font: DejaVu Sans Mono
           height: 128
           left: 300

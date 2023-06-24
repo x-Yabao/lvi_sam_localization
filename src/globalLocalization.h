@@ -112,7 +112,8 @@ public:
     ros::Publisher pubLaserCloudSurround;
     ros::Publisher pubOdomAftMappedROS;
     ros::Publisher pubPath;
-    ros::Publisher pubMatchImg;
+    ros::Publisher pubMatchImg;                     // yabao
+    ros::Publisher pubInitialInfo;                  // yabao
 
     ros::Publisher pubHistoryKeyFrames;
     ros::Publisher pubIcpKeyFrames;
@@ -252,6 +253,7 @@ public:
     int relocation_lidar_index;                     // index为-1时根据位置提取局部地图，其他时根据index提取局部地图
     Eigen::Vector3d relocation_T;                   // 精重定位平移
     Eigen::Matrix3d relocation_R;                   // 精重定位旋转
+    int relocation_method;                          // 1：视觉；2：LiDAR
 
     // 定位结果    
     Eigen::Vector3d location_T;                     // 最终定位位移(可通过getLocationResult()获得)

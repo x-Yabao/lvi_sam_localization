@@ -14,7 +14,7 @@ mapOptimization::mapOptimization()
     pubOdomAftMappedROS = nh.advertise<nav_msgs::Odometry> ("lio_sam/mapping/odometry", 1);
     pubPath = nh.advertise<nav_msgs::Path>("lio_sam/mapping/path", 1);
     pubMatchImg = nh.advertise<sensor_msgs::Image>("match_image", 10);
-
+    pubInitialInfo = nh.advertise<std_msgs::String>("info/initial_method", 5);
 
     pubHistoryKeyFrames = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/mapping/icp_loop_closure_history_cloud", 1);
     pubIcpKeyFrames = nh.advertise<sensor_msgs::PointCloud2>("lio_sam/mapping/icp_loop_closure_corrected_cloud", 1);
@@ -1190,6 +1190,9 @@ void mapOptimization::relocateInitialize()
 
     std::cout << "start relocate initialization" << std::endl;
 
+    std_msgs::String initial_msg;
+    std::string initial_info;
+
     if (imageAvailable)
     {
         // 视觉激光融合重定位
@@ -1203,7 +1206,6 @@ void mapOptimization::relocateInitialize()
             {
                 std::cout << "Visual-LiDAR fusion rough relocation failure!" << std::endl;
                 relocateSucceedFlag = false;
-                return;
             }
         }
     }
@@ -1275,10 +1277,22 @@ void mapOptimization::relocateInitialize()
     {
         initializedFlag = Initializing;
         std::cout << "Initializing Fail" << std::endl;
+        initial_info = "Relocation Fail";
+        initial_msg.data = initial_info.c_str();
+        pubInitialInfo.publish(initial_msg);
         return;
     } else{
         initializedFlag = Initialized;
         std::cout << "Initializing Succeed" << std::endl;
+        if(relocation_method == 1)
+            initial_info = "Visual Relocation";
+        else if(relocation_method == 2)
+            initial_info = "LiDAR Relocation";
+        else
+            initial_info = "Unknow";
+        initial_msg.data = initial_info.c_str();
+        pubInitialInfo.publish(initial_msg);
+
         geometry_msgs::PoseStamped pose_odomTo_map;
         tf::Quaternion q_odomTo_map = tf::createQuaternionFromRPY(deltaR, deltaP, deltaY);
 
@@ -1588,14 +1602,24 @@ int mapOptimization::visualRelocate()
 
             // 5.视觉粗重定位成功，输出结果
             ROS_INFO("Visual rough relocation success!");
+            relocation_method = 1;
             std::cout << "T is: " << tmp_relocation_T.transpose() << std::endl;
             std::cout << "YPR is: " << tmp_relocation_YPR.transpose() << std::endl;
             // std::cout << "image time stamp: " << fixed << setprecision(5) << image_time << std::endl; 
             // std::cout << "lidar time stamp: " << fixed << setprecision(5) << cloud_time << std::endl; 
+
+            int gap = 10;
+	        cv::Mat gap_image(ROW, gap, CV_8UC1, cv::Scalar(255, 255, 255));
             cv::Mat query_img = queryPicture->image;
             cv::Mat old_img = old_kf->image;
             cv::Mat show_img;
-            cv::hconcat(query_img, old_img, show_img);
+            cv::hconcat(query_img, gap_image, gap_image);
+            cv::hconcat(gap_image, old_img, show_img);
+            cv::Mat notation(50, COL + gap + COL, CV_8UC1, cv::Scalar(255));
+	        putText(notation, "current picture" , cv::Point2f(20, 30), CV_FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0), 3);
+            putText(notation, "map picture", cv::Point2f(20 + COL + gap, 30), CV_FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0), 3);
+	        cv::vconcat(notation, show_img, show_img);
+
             sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", show_img).toImageMsg();
             pubMatchImg.publish(msg);
             return 0;
@@ -1707,6 +1731,7 @@ int mapOptimization::lidarRelocate()
             return -1;
         }
         ROS_INFO("LiDAR rough relocation success, SC loop found: %d!", loopKeyPre);
+        relocation_method = 2;
 
         // 3.得到粗位姿，以找到的lidar帧作为粗位姿，并在yaw上做一点处理
         tmp_relocation_pose = map->cloudKeyPoses6D->points[loopKeyPre];
