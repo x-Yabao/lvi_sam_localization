@@ -26,9 +26,9 @@ catkin_make
 ```
 
 ## Prepare a built map
-Take the M2DGR dataset for example.
+Take the [M2DGR dataset](https://github.com/SJTU-ViSYS/M2DGR) for example.
 1. Fisrtly, you need to **prepare a built map**. Please run our another work [lvi-sam-savemap](https://github.com/x-Yabao/lvi_sam_savemap) to build and save the map in a folder.
-2. Change the above map to binary format, so that we can reduce the map load time.
+2. Change the above map to binary format, so that we can reduce the map loading time.
    
    - Make sure the [config file](./config/m2dgr/params_function.yaml) is right.
   
@@ -39,7 +39,7 @@ Take the M2DGR dataset for example.
 
 
 ## Run the package
-Take the M2DGR dataset for example.
+Take the [M2DGR dataset](https://github.com/SJTU-ViSYS/M2DGR) for example.
 1. Make sure the [config file](./config/m2dgr/params_function.yaml) is right.
 
 2. Run the launch file:
@@ -57,7 +57,7 @@ rosbag play your-bag.bag
 
 
 ## Notes
-- **Initialization:** During the initialization stage, had better keep the robot still. Or if you play bags, fistly play the bag for about 0.5s, and then pause the bag until the initialization succeed. If initialization failure, move the robot to another play, or play the bag for a few seconds, than activate relocation again by give it random guesses on the the Rviz.
+- **Initialization:** During the initialization stage, had better keep the robot still. Or if you play bags, fistly play the bag for about 0.5s, and then pause the bag until the initialization succeed. If initialization failure, move the robot to another place, or play the bag for a few seconds, than activate relocation again by give it a random guess on the the Rviz.
 
 ## Acknowledgement
 - [LVI-SAM](https://github.com/TixiaoShan/LVI-SAM)
