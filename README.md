@@ -3,7 +3,7 @@ A simple version of system that can localize in a built map is developed in this
 
 - Through **Visual-LiDAR Fusion Relocalization**, the system can launch anywhere in the built map, and the Visual-LiDAR Fusion Relocalization is based on Bag-of-Words and [Scan Context](https://github.com/irapkaist/scancontext).
 - Use the **C++ boost serialization**, the system can change the folder map to binary format, so that reduce map loading time by more than 30%.
-- Real-time parameter tuning：The system can adjust algorithm parameters in real time according to the current robot working environment, CPU and memory usage, etc., to improve system performance.
+- Real-time parameter tuning: The system can adjust algorithm parameters in real time according to the current robot working environment, CPU and memory usage, etc., to improve system performance.
   
 A video of the demonstration of the method can be found on [YouTube]().
 
