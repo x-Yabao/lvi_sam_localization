@@ -5,7 +5,7 @@ A simple version of system that can localize in a built map is developed in this
 - Use the **C++ boost serialization**, the system can change the folder map to binary format, so that reduce map loading time by more than 30%.
 - Real-time parameter tuning: The system can adjust algorithm parameters in real time according to the current robot working environment, CPU and memory usage, etc., to improve system performance.
   
-A video of the demonstration of the method can be found on [YouTube]().
+A video of this project can be found on [YouTube](https://youtu.be/ZFumQSqMsE0).
 
 <p align='center'>
     <img src="./doc/fig/localization.png" alt="drawing" width="800"/>
