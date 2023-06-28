@@ -1065,8 +1065,8 @@ void mapOptimization::cloudGlobalLoad()
 
 void mapOptimization::globalLocalizeThread()
 {
-
     // ros::Rate rate(0.2);
+
     while (ros::ok())
     {
         // avoid ICP using the same initial guess for many times
@@ -1087,9 +1087,10 @@ void mapOptimization::globalLocalizeThread()
             ros::Duration(10.0).sleep();
 
             double t_start = ros::Time::now().toSec();
-            ICPscanMatchGlobal();
+            //ICPscanMatchGlobal();
+            ICPscanMatchLocal();            // yabao
             double t_end = ros::Time::now().toSec();
-            // std::cout << "ICP time consuming: " << t_end-t_start;
+            std::cout << "ICP time consuming: " << t_end - t_start << std::endl;
         }
 
         // rate.sleep();
@@ -1408,7 +1409,7 @@ void mapOptimization::ICPscanMatchGlobal()
     pcl::PointCloud<PointType>::Ptr unused_result(new pcl::PointCloud<PointType>());
     icp.align(*unused_result, ndt.getFinalTransformation());
 
-    std::cout << "amonverg flag:" << icp.hasConverged() << ". Fitness score: " << icp.getFitnessScore() << std::endl
+    std::cout << "converg flag:" << icp.hasConverged() << ". Fitness score: " << icp.getFitnessScore() << std::endl
               << std::endl;
 
     // if (icp.hasConverged() == false || icp.getFitnessScore() > historyKeyframeFitnessScore)
@@ -1477,8 +1478,8 @@ void mapOptimization::ICPscanMatchLocal()
     mtxWin.unlock();
 
     // 提取局部地图
-    pcl::PointCloud<PointType>::Ptr prevKeyframeCloud(new pcl::PointCloud<PointType>());
-    loopFindNearKeyframesByPose(prevKeyframeCloud, pose, historyKeyframeSearchNum);
+    pcl::PointCloud<PointType>::Ptr cloudLocalMap(new pcl::PointCloud<PointType>());
+    map->extractSurroundingKeyFrames(cloudLocalMap, pose);
 
     pcl::NormalDistributionsTransform<PointType, PointType> ndt;
     ndt.setTransformationEpsilon(0.01);
@@ -1502,16 +1503,16 @@ void mapOptimization::ICPscanMatchLocal()
     // std::cout << "matricInitGuess: " << matricInitGuess << std::endl;
     // Firstly perform ndt in coarse resolution
     ndt.setInputSource(latestCloudIn);
-    ndt.setInputTarget(cloudGlobalMapDS);
+    ndt.setInputTarget(cloudLocalMap);
     pcl::PointCloud<PointType>::Ptr unused_result_0(new pcl::PointCloud<PointType>());
     ndt.align(*unused_result_0, matricInitGuess);
     // use the outcome of ndt as the initial guess for ICP
     icp.setInputSource(latestCloudIn);
-    icp.setInputTarget(cloudGlobalMapDS);
+    icp.setInputTarget(cloudLocalMap);
     pcl::PointCloud<PointType>::Ptr unused_result(new pcl::PointCloud<PointType>());
     icp.align(*unused_result, ndt.getFinalTransformation());
 
-    std::cout << "amonverg flag:" << icp.hasConverged() << ". Fitness score: " << icp.getFitnessScore() << std::endl
+    std::cout << "converg flag:" << icp.hasConverged() << ". Fitness score: " << icp.getFitnessScore() << std::endl
               << std::endl;
 
     // if (icp.hasConverged() == false || icp.getFitnessScore() > historyKeyframeFitnessScore)
@@ -1533,9 +1534,9 @@ void mapOptimization::ICPscanMatchLocal()
     tranformOdomToWorld[5] = z;
     mtxtranformOdomToWorld.unlock();
     // publish the laserpointcloud in world frame
-
-    // publish global map
-    publishCloud(&pubMapWorld, cloudGlobalMapDS, timeLaserInfoStamp, "map"); // publish world map
+    
+    //publishCloud(&pubMapWorld, cloudGlobalMapDS, timeLaserInfoStamp, "map"); // publish global map
+    publishCloud(&pubMapWorld, cloudLocalMap, timeLaserInfoStamp, "map");   // publish local map
 
     if (icp.hasConverged() == true && icp.getFitnessScore() < historyKeyframeFitnessScore)
     {

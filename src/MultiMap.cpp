@@ -1,51 +1,9 @@
 #include "MultiMap.h"
 
-int MultiMap::testMap()
-{   
-    // Test1:检查激光路径和视觉路径的差别
-    std::cout << "Compare the lidar trajectory and camera trajectory!" << std::endl;
-    pcl::PointCloud<PointType>::Ptr trajectory_lidar(new pcl::PointCloud<PointType>());
-    pcl::PointCloud<PointType>::Ptr trajectory_camera(new pcl::PointCloud<PointType>());
-    for(int i = 0; i < cloudKeyPoses3D->size(); i++){
-        PointType thisPose3D;
-        thisPose3D.x = -cloudKeyPoses3D->points[i].x;
-        thisPose3D.y = -cloudKeyPoses3D->points[i].y;
-        thisPose3D.z = cloudKeyPoses3D->points[i].z;
-        thisPose3D.intensity = trajectory_lidar->size(); 
-        trajectory_lidar->push_back(thisPose3D); 
-    }
-    pcl::io::savePCDFileASCII("trajectory_lidar.pcd", *trajectory_lidar);
-
-	// 保存的地图里，vins的坐标系和lio的坐标系绕z轴旋转了180度
-	Eigen::AngleAxisd rotation_vector(M_PI, Vector3d(0, 0, 1));
-	Eigen::Matrix3d vins_to_lio = rotation_vector.toRotationMatrix();
-
-
-    for(auto& kf : keyframelist){
-        Eigen::Vector3d temp_T = vins_to_lio * kf->T_w_i;
-        PointType thisPose3D;
-        // thisPose3D.x = temp_T.x();
-        // thisPose3D.y = temp_T.y();
-        // thisPose3D.z = temp_T.z();
-        thisPose3D.x = kf->T_w_i.x();
-        thisPose3D.y = kf->T_w_i.y();
-        thisPose3D.z = kf->T_w_i.z();
-        thisPose3D.intensity = trajectory_camera->size(); 
-        trajectory_camera->push_back(thisPose3D);
-    }
-    pcl::io::savePCDFileASCII("trajectory_camera.pcd", *trajectory_camera);
-
-    //Test2:检查激光关键帧的时间戳
-    for(int i = 0; i < cloudKeyPoses6D->size(); i++) {
-        std::cout << "lidar frame time stamp " << ": " << 
-        fixed << setprecision(5) << cloudKeyPoses6D->points[i].time << std::endl;
-    }
-
-    return 0;
-}
-
 MultiMap::MultiMap()
 {
+    downSizeFilterSurroundingKeyPoses.setLeafSize(surroundingKeyframeDensity, surroundingKeyframeDensity, surroundingKeyframeDensity); 
+    downSizeFilterICP.setLeafSize(mappingSurfLeafSize, mappingSurfLeafSize, mappingSurfLeafSize);
     // lidar map
     allocateMemory();
 
@@ -57,6 +15,8 @@ void MultiMap::allocateMemory()
 {
     cloudKeyPoses3D.reset(new pcl::PointCloud<PointType>());
     cloudKeyPoses6D.reset(new pcl::PointCloud<PointTypePose>());
+
+    kdtreeSurroundingKeyPoses.reset(new pcl::KdTreeFLANN<PointType>());
 }
 
 int MultiMap::loadMultiMap()
@@ -368,3 +328,72 @@ void MultiMap::serialize(Archive &ar, const unsigned int version)
 template void MultiMap::serialize(boost::archive::binary_iarchive&, const unsigned int);
 template void MultiMap::serialize(boost::archive::binary_oarchive&, const unsigned int);
 
+
+void MultiMap::extractSurroundingKeyFrames(pcl::PointCloud<PointType>::Ptr &nearKeyframes, const PointType &pose)
+{
+    if (cloudKeyPoses3D->points.empty() == true)
+        return; 
+    
+    pcl::PointCloud<PointType>::Ptr surroundingKeyPoses(new pcl::PointCloud<PointType>());
+    pcl::PointCloud<PointType>::Ptr surroundingKeyPosesDS(new pcl::PointCloud<PointType>());
+    std::vector<int> pointSearchInd;        // 保存kdtree提取出来的元素的索引
+    std::vector<float> pointSearchSqDis;    // 保存距离查询位置的距离的数组
+
+    // extract all the nearby key poses and downsample them
+    kdtreeSurroundingKeyPoses->setInputCloud(cloudKeyPoses3D); // create kd-tree
+    // kdtreeSurroundingKeyPoses->radiusSearch(cloudKeyPoses3D->back(), (double)surroundingKeyframeSearchRadius, pointSearchInd, pointSearchSqDis);
+    kdtreeSurroundingKeyPoses->radiusSearch(pose, (double)surroundingKeyframeSearchRadius, pointSearchInd, pointSearchSqDis);
+    // 根据查询的结果，把这些点的位置存进一个点云结构中
+    for (int i = 0; i < (int)pointSearchInd.size(); ++i)
+    {
+        int id = pointSearchInd[i];
+        surroundingKeyPoses->push_back(cloudKeyPoses3D->points[id]);
+    }
+
+    // 避免关键帧过多，因此做一个下采样
+    downSizeFilterSurroundingKeyPoses.setInputCloud(surroundingKeyPoses);
+    downSizeFilterSurroundingKeyPoses.filter(*surroundingKeyPosesDS);
+    // 确认每个下采样后的点的索引，就使用一个最近邻搜索，其索引赋值给这个点的intensity数据位
+    for(auto& pt : surroundingKeyPosesDS->points)
+    {
+        kdtreeSurroundingKeyPoses->nearestKSearch(pt, 1, pointSearchInd, pointSearchSqDis);
+        pt.intensity = cloudKeyPoses3D->points[pointSearchInd[0]].intensity;
+    }
+
+    // 根据筛选出来的关键帧进行局部地图构建
+    // extractCloud(surroundingKeyPosesDS);
+    pcl::PointCloud<PointType>::Ptr cloud_temp(new pcl::PointCloud<PointType>());
+    for (int i = 0; i < (int)surroundingKeyPosesDS->size(); ++i)
+    {
+        int thisKeyInd = (int)surroundingKeyPosesDS->points[i].intensity;
+
+        pcl::PointCloud<PointType> laserCloudCornerTemp = *transformPointCloud(cornerCloudKeyFrames[thisKeyInd],  &cloudKeyPoses6D->points[thisKeyInd]);
+        pcl::PointCloud<PointType> laserCloudSurfTemp = *transformPointCloud(surfCloudKeyFrames[thisKeyInd],    &cloudKeyPoses6D->points[thisKeyInd]);
+        *cloud_temp += laserCloudCornerTemp;
+        *cloud_temp += laserCloudSurfTemp;
+    }
+    downSizeFilterICP.setInputCloud(cloud_temp);
+    downSizeFilterICP.filter(*nearKeyframes);
+}
+
+pcl::PointCloud<PointType>::Ptr MultiMap::transformPointCloud(pcl::PointCloud<PointType>::Ptr cloudIn, PointTypePose* transformIn)
+{
+    pcl::PointCloud<PointType>::Ptr cloudOut(new pcl::PointCloud<PointType>());
+
+    int cloudSize = cloudIn->size();
+    cloudOut->resize(cloudSize);
+
+    Eigen::Affine3f transCur = pcl::getTransformation(transformIn->x, transformIn->y, transformIn->z, transformIn->roll, transformIn->pitch, transformIn->yaw);
+    // 使用openmp进行并行加速
+    #pragma omp parallel for num_threads(numberOfCores)
+    for (int i = 0; i < cloudSize; ++i)
+    {
+        const auto &pointFrom = cloudIn->points[i];
+        // 每个点都施加RX+t这样一个过程
+        cloudOut->points[i].x = transCur(0,0) * pointFrom.x + transCur(0,1) * pointFrom.y + transCur(0,2) * pointFrom.z + transCur(0,3);
+        cloudOut->points[i].y = transCur(1,0) * pointFrom.x + transCur(1,1) * pointFrom.y + transCur(1,2) * pointFrom.z + transCur(1,3);
+        cloudOut->points[i].z = transCur(2,0) * pointFrom.x + transCur(2,1) * pointFrom.y + transCur(2,2) * pointFrom.z + transCur(2,3);
+        cloudOut->points[i].intensity = pointFrom.intensity;
+    }
+    return cloudOut;
+}

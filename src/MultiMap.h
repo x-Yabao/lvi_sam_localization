@@ -9,30 +9,6 @@
 #include "keyframe.h"
 #include "serialize.h"
 
-/*
-typedef pcl::PointXYZI PointType;
-
-//A point cloud type that has 6D pose info ([x,y,z,roll,pitch,yaw] intensity is time stamp)
-struct PointXYZIRPYT
-{
-    PCL_ADD_POINT4D
-    PCL_ADD_INTENSITY;                  // preferred way of adding a XYZ+padding
-    float roll;
-    float pitch;
-    float yaw;
-    double time;
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW     // make sure our new allocators are aligned
-} EIGEN_ALIGN16;                        // enforce SSE padding for correct memory alignment
-
-POINT_CLOUD_REGISTER_POINT_STRUCT (PointXYZIRPYT,
-                                   (float, x, x) (float, y, y)
-                                   (float, z, z) (float, intensity, intensity)
-                                   (float, roll, roll) (float, pitch, pitch) (float, yaw, yaw)
-                                   (double, time, time))
-
-typedef PointXYZIRPYT  PointTypePose;
-*/
-
 
 class MultiMap
 {
@@ -42,18 +18,20 @@ public:
 
     // 地图加载
     int loadMultiMap();          
-    int loadLidarMap();
-    int loadVisualMap();
 
-    int testMap();
-    
+    // 获取局部地图
+    void extractSurroundingKeyFrames(pcl::PointCloud<PointType>::Ptr &nearKeyframes, const PointType &pose);
+    pcl::PointCloud<PointType>::Ptr transformPointCloud(pcl::PointCloud<PointType>::Ptr cloudIn, PointTypePose* transformIn);
+
 private:
+    int loadLidarMap();         // 加载激光地图
     int loadCloudKeyFrames();   // 加载点云关键帧
     int loadCornerAndSurf();    // 加载角点和平面点
     int loadSCbyScans();        // 加载Scancontext描述子
     int loadTrajectory();       // 加载轨迹
     int loadTransformations();  // 加载六自由度位姿
-
+    
+    int loadVisualMap();        // 加载视觉地图
     int loadPoseGraph();
     void loadKeyFrame(KeyFrame* cur_kf);
 	void loadVocabulary(std::string voc_path);
@@ -83,6 +61,11 @@ private:
 
 	BriefDatabase db;					// 地图词袋
 	BriefVocabulary* voc;				// 字典
+
+    /************************ 用于提取局部地图 ****************************/
+    pcl::KdTreeFLANN<PointType>::Ptr kdtreeSurroundingKeyPoses;
+    pcl::VoxelGrid<PointType> downSizeFilterSurroundingKeyPoses; 
+    pcl::VoxelGrid<PointType> downSizeFilterICP;
 
 };
 
