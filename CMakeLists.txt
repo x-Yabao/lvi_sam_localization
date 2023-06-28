@@ -81,10 +81,9 @@ add_library(slam SHARED
   ${PROJECT_SOURCE_DIR}/src/featureExtraction.cpp
   ${PROJECT_SOURCE_DIR}/src/imuPreintegration.cpp
   ${PROJECT_SOURCE_DIR}/src/globalLocalization.cpp
+  ${PROJECT_SOURCE_DIR}/src/tunning.cpp
   ${PROJECT_SOURCE_DIR}/src/utility/utility.cpp
   ${PROJECT_SOURCE_DIR}/src/information/SysInfo.cpp
-  # ${PROJECT_SOURCE_DIR}/src/information/LocaInfo.cpp
-  ${PROJECT_SOURCE_DIR}/src/information/tunning.cpp
   ${PROJECT_SOURCE_DIR}/src/ThirdParty/lidar/Scancontext.cpp
   ${PROJECT_SOURCE_DIR}/src/ThirdParty/camera/DBoW/BowVector.cpp
   ${PROJECT_SOURCE_DIR}/src/ThirdParty/camera/DBoW/FBrief.cpp
@@ -115,6 +114,10 @@ add_dependencies(globalLocalizationNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAM
 target_compile_options(globalLocalizationNode PRIVATE ${OpenMP_CXX_FLAGS})
 target_link_libraries(globalLocalizationNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS} ${OpenMP_CXX_FLAGS})
 
+add_executable(tunningNode examples/node/tunningNode.cpp)
+add_dependencies(tunningNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(tunningNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS})
+
 add_executable(buildBinaryMap examples/build_map/buildBinaryMap.cpp)
 add_dependencies(buildBinaryMap ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_compile_options(buildBinaryMap PRIVATE ${OpenMP_CXX_FLAGS})
@@ -124,6 +127,3 @@ add_executable(sysInfoNode examples/node/sysInfoNode.cpp)
 add_dependencies(sysInfoNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(sysInfoNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS})
 
-add_executable(tunningNode examples/node/tunningNode.cpp)
-add_dependencies(tunningNode ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(tunningNode slam ${catkin_LIBRARIES} ${THIRD_PARTY_LIBS})

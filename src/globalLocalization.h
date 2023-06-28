@@ -70,7 +70,9 @@ public:
     void cloudGlobalLoad();
     void globalLocalizeThread();
     void ICPLocalizeInitialize();
+    // 用于全局定位的方法
     void ICPscanMatchGlobal();
+    void ICPscanMatchLocal();       // yabao
     void initialpose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& pose_msg);
 
     // 地图管理和服务接口(yabao)
