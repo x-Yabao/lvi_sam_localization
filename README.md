@@ -66,3 +66,9 @@ rosbag play your-bag.bag
 - [LIO-SAM](https://github.com/TixiaoShan/LIO-SAM)
 - [LIO-SAM_based_relocalization](https://github.com/Gaochao-hit/LIO-SAM_based_relocalization)
 - [SC-LIO-SAM](https://github.com/gisbi-kim/SC-LIO-SAM)
+
+
+## TODO
++ [ ] Preprocess the built map and cut it into squares. Global localization extracts squares instead of keyframes when extracting local maps.
+
+

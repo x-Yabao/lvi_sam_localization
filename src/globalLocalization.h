@@ -81,6 +81,7 @@ public:
     int loadBinaryMap();
 
 private:
+    // TODO: 重定位应该包装成一个类，还是放到地图类中？
     // 视觉重定位功能实现
     int visualRelocate();
     int loadQueryPicture(bool relocate_test);
@@ -263,4 +264,6 @@ public:
     Eigen::Affine3f lastTransformation;             // 最终定位结果（精重定位完成后会赋值）
     
     pcl::KdTreeFLANN<PointType>::Ptr kdtreeLidarKeyPoses;
+
+    
 };

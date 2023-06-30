@@ -34,6 +34,8 @@ public:
     bool failureDetection(const gtsam::Vector3& velCur, const gtsam::imuBias::ConstantBias& biasCur);
     void imuHandler(const sensor_msgs::Imu::ConstPtr& imu_raw);
 
+    void saveInformationThread();
+
 public:
     std::mutex mtx;
 
@@ -88,9 +90,14 @@ public:
     gtsam::Pose3 imu2Lidar = gtsam::Pose3(gtsam::Rot3(1, 0, 0, 0), gtsam::Point3(-extTrans.x(), -extTrans.y(), -extTrans.z()));
     gtsam::Pose3 lidar2Imu = gtsam::Pose3(gtsam::Rot3(1, 0, 0, 0), gtsam::Point3(extTrans.x(), extTrans.y(), extTrans.z()));;
 
-    //added *****************************  by gc
+    //added by gc
     ros::Subscriber subPoseOdomToMap;
     geometry_msgs::PoseStamped poseOdomToMap;
-    //added *****************************  by gc
+    //added by gc
+
+    // trajectory int built map (imu freq)
+    std::vector<double> traj_timestamps;
+    std::vector<Eigen::Vector3d> traj_Ts;
+    std::vector<Eigen::Quaterniond> traj_Rs;
 
 };

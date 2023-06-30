@@ -290,7 +290,8 @@ void IMUPreintegration::imuHandler(const sensor_msgs::Imu::ConstPtr& imu_raw)
 
     sensor_msgs::Imu thisImu = imuConverter(*imu_raw);
     // publish static tf
-    //gc: the tf of map relative to odom  Todo: something can be done here to do localizaing in built map
+    //gc: the tf of map relative to odom  
+    // Todo: something can be done here to do localizaing in built map
     tfMap2Odom.sendTransform(tf::StampedTransform(map_to_odom, thisImu.header.stamp, "map", "odom"));
 
     imuQueOpt.push_back(thisImu);
@@ -336,7 +337,7 @@ void IMUPreintegration::imuHandler(const sensor_msgs::Imu::ConstPtr& imu_raw)
     odometry.twist.twist.angular.y = thisImu.angular_velocity.y + prevBiasOdom.gyroscope().y();
     odometry.twist.twist.angular.z = thisImu.angular_velocity.z + prevBiasOdom.gyroscope().z();
     odometry.pose.covariance[0] = double(imuPreintegrationResetId);
-    pubImuOdometry.publish(odometry);       //gc: publish the state predicted by IMu
+    pubImuOdometry.publish(odometry);       //gc: publish the state predicted by IMU
 
     // publish imu path
     static nav_msgs::Path imuPath;
@@ -364,4 +365,48 @@ void IMUPreintegration::imuHandler(const sensor_msgs::Imu::ConstPtr& imu_raw)
     tf::poseMsgToTF(odometry.pose.pose, tCur);
     tf::StampedTransform odom_2_baselink = tf::StampedTransform(tCur, thisImu.header.stamp, "odom", "base_link");
     tfOdom2BaseLink.sendTransform(odom_2_baselink);
+
+    //  yabao
+    tf::Transform baseToWorld;
+    baseToWorld =  map_to_odom.inverse() * tCur;
+
+    tf::Vector3 vec_tf = baseToWorld.getOrigin();
+    tf::Quaternion quad_tf = baseToWorld.getRotation();
+
+    Eigen::Vector3d vec_eigen(vec_tf.x(), vec_tf.y(), vec_tf.z());
+    Eigen::Quaterniond quad_eigen(quad_tf.w(), quad_tf.x(), quad_tf.y(), quad_tf.z());
+    
+    traj_Ts.push_back(vec_eigen);
+    traj_Rs.push_back(quad_eigen);
+
+    double timestamp =  odometry.header.stamp.toSec();
+    traj_timestamps.push_back(timestamp);
+
 }
+
+void IMUPreintegration::saveInformationThread()
+{
+    ros::Rate rate(1.0);
+    while (ros::ok())
+    {
+        rate.sleep();
+    }
+
+    // 当ros被杀死之后
+    // 执行保存轨迹功能(imu freq)
+    std::cout << "Saving the trajectory now!" << std::endl;
+    std::string filename("/home/yabao/trajectory_imu.txt");
+    std::ofstream traj_file;
+    traj_file.open(filename.c_str());
+    traj_file << fixed;
+
+    for (int i = 0; i < traj_timestamps.size(); i++)
+    {
+        traj_file << traj_timestamps[i] << " " << setprecision(7) << 
+        traj_Ts[i](0) << " " << traj_Ts[i](1) << " " << traj_Ts[i](2) << " " << 
+        traj_Rs[i].x() << " " << traj_Rs[i].y() << " " << traj_Rs[i].z() << " " << traj_Rs[i].w() << std::endl;
+    }
+    traj_file.close();
+    std::cout << "Saving the trajectory finish!" << "Size is: " << traj_timestamps.size() << "." << std::endl;
+}
+

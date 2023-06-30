@@ -3,7 +3,7 @@
 MultiMap::MultiMap()
 {
     downSizeFilterSurroundingKeyPoses.setLeafSize(surroundingKeyframeDensity, surroundingKeyframeDensity, surroundingKeyframeDensity); 
-    downSizeFilterICP.setLeafSize(mappingSurfLeafSize, mappingSurfLeafSize, mappingSurfLeafSize);
+
     // lidar map
     allocateMemory();
 
@@ -340,7 +340,7 @@ void MultiMap::extractSurroundingKeyFrames(pcl::PointCloud<PointType>::Ptr &near
     std::vector<float> pointSearchSqDis;    // 保存距离查询位置的距离的数组
 
     // extract all the nearby key poses and downsample them
-    kdtreeSurroundingKeyPoses->setInputCloud(cloudKeyPoses3D); // create kd-tree
+    kdtreeSurroundingKeyPoses->setInputCloud(cloudKeyPoses3D); 
     // kdtreeSurroundingKeyPoses->radiusSearch(cloudKeyPoses3D->back(), (double)surroundingKeyframeSearchRadius, pointSearchInd, pointSearchSqDis);
     kdtreeSurroundingKeyPoses->radiusSearch(pose, (double)surroundingKeyframeSearchRadius, pointSearchInd, pointSearchSqDis);
     // 根据查询的结果，把这些点的位置存进一个点云结构中
@@ -360,20 +360,26 @@ void MultiMap::extractSurroundingKeyFrames(pcl::PointCloud<PointType>::Ptr &near
         pt.intensity = cloudKeyPoses3D->points[pointSearchInd[0]].intensity;
     }
 
+    std::cout << "surroundingKeyPoses size: " << surroundingKeyPoses->size() << std::endl;
+    std::cout << "surrondingKeyPosesDS size: " << surroundingKeyPosesDS->size() << std::endl;
+
     // 根据筛选出来的关键帧进行局部地图构建
     // extractCloud(surroundingKeyPosesDS);
-    pcl::PointCloud<PointType>::Ptr cloud_temp(new pcl::PointCloud<PointType>());
     for (int i = 0; i < (int)surroundingKeyPosesDS->size(); ++i)
     {
         int thisKeyInd = (int)surroundingKeyPosesDS->points[i].intensity;
 
-        pcl::PointCloud<PointType> laserCloudCornerTemp = *transformPointCloud(cornerCloudKeyFrames[thisKeyInd],  &cloudKeyPoses6D->points[thisKeyInd]);
-        pcl::PointCloud<PointType> laserCloudSurfTemp = *transformPointCloud(surfCloudKeyFrames[thisKeyInd],    &cloudKeyPoses6D->points[thisKeyInd]);
-        *cloud_temp += laserCloudCornerTemp;
-        *cloud_temp += laserCloudSurfTemp;
+        // 使用corner和surf的点云进行局部地图构建
+        pcl::PointCloud<PointType> laserCloudCornerTemp = *transformPointCloud(cornerCloudKeyFrames[thisKeyInd], &cloudKeyPoses6D->points[thisKeyInd]);
+        pcl::PointCloud<PointType> laserCloudSurfTemp = *transformPointCloud(surfCloudKeyFrames[thisKeyInd], &cloudKeyPoses6D->points[thisKeyInd]);
+        *nearKeyframes += laserCloudCornerTemp;
+        *nearKeyframes += laserCloudSurfTemp;
+
+        // 使用全部的点云进行局部地图构建
+        // pcl::PointCloud<PointType> laserCloudTemp = *transformPointCloud(cloudKeyFrames[thisKeyInd], &cloudKeyPoses6D->points[thisKeyInd]);
+        // *nearKeyframes += laserCloudTemp;
     }
-    downSizeFilterICP.setInputCloud(cloud_temp);
-    downSizeFilterICP.filter(*nearKeyframes);
+
 }
 
 pcl::PointCloud<PointType>::Ptr MultiMap::transformPointCloud(pcl::PointCloud<PointType>::Ptr cloudIn, PointTypePose* transformIn)

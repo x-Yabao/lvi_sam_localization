@@ -37,13 +37,13 @@ private:
 	void loadVocabulary(std::string voc_path);
 
 private:
+    // serialization
     friend class boost::serialization::access;
     template<class Archive>
     void serialize(Archive &ar, const unsigned int version);
 
-private:
     friend class mapOptimization;
-    /************************ lidar information ****************************/
+    /************************ LiDAR information ****************************/
     std::vector<pcl::PointCloud<PointType>::Ptr> cloudKeyFrames;
     std::vector<pcl::PointCloud<PointType>::Ptr> cornerCloudKeyFrames;     
     std::vector<pcl::PointCloud<PointType>::Ptr> surfCloudKeyFrames;
@@ -65,8 +65,6 @@ private:
     /************************ 用于提取局部地图 ****************************/
     pcl::KdTreeFLANN<PointType>::Ptr kdtreeSurroundingKeyPoses;
     pcl::VoxelGrid<PointType> downSizeFilterSurroundingKeyPoses; 
-    pcl::VoxelGrid<PointType> downSizeFilterICP;
-
 };
 
 

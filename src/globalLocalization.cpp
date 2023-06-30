@@ -1073,7 +1073,7 @@ void mapOptimization::globalLocalizeThread()
         if (initializedFlag == NonInitialized)
         {
             // ICPLocalizeInitialize();      // 使用NDT和ICP初始化
-            relocateInitialize(); // 使用视觉激光融合重定位初始化
+            relocateInitialize();            // 使用视觉激光融合重定位初始化
         }
         else if (initializedFlag == Initializing)
         {
@@ -1084,13 +1084,20 @@ void mapOptimization::globalLocalizeThread()
         }
         else
         {
-            ros::Duration(10.0).sleep();
+            static int cnt = 0;
+            static double sum = 0;
+            ros::Duration(5.0).sleep();         // 并非频率越高越好
 
             double t_start = ros::Time::now().toSec();
             //ICPscanMatchGlobal();
             ICPscanMatchLocal();            // yabao
             double t_end = ros::Time::now().toSec();
-            std::cout << "ICP time consuming: " << t_end - t_start << std::endl;
+
+            double time = t_end - t_start;
+            sum += time;
+            cnt++;
+            std::cout << "ICP time consuming this frame: " << time << std::endl;
+            std::cout << "ICP time consuming average: " << sum / cnt << std::endl << std::endl;
         }
 
         // rate.sleep();
@@ -1346,15 +1353,12 @@ void mapOptimization::relocateInitialize()
 }
 
 // 全局定位方法1：
-// 点云匹配方法：ICP
+// 点云匹配方法：NDT & ICP
 // 点云匹配对象：最近的关键帧 -> 全局地图
 void mapOptimization::ICPscanMatchGlobal()
 {
     if (cloudKeyPoses3D->points.empty() == true)
         return;
-
-    // change-5
-    /******************added by gc************************/
 
     mtxWin.lock();
     int latestFrameIDGlobalLocalize;
@@ -1366,12 +1370,8 @@ void mapOptimization::ICPscanMatchGlobal()
     std::cout << "the size of input cloud: " << latestCloudIn->points.size() << std::endl;
     mtxWin.unlock();
 
-    /******************added by gc************************/
-
     // int latestFrameIDGlobalLocalize;
     // latestFrameIDGlobalLocalize = cloudKeyPoses3D->size() - 1;
-
-    // //latest Frame cloudpoints In the odom Frame
 
     // pcl::PointCloud<PointType>::Ptr latestCloudIn(new pcl::PointCloud<PointType>());
     // *latestCloudIn += *transformPointCloud(cornerCloudKeyFrames[latestFrameIDGlobalLocalize], &cloudKeyPoses6D->points[latestFrameIDGlobalLocalize]);
@@ -1409,8 +1409,7 @@ void mapOptimization::ICPscanMatchGlobal()
     pcl::PointCloud<PointType>::Ptr unused_result(new pcl::PointCloud<PointType>());
     icp.align(*unused_result, ndt.getFinalTransformation());
 
-    std::cout << "converg flag:" << icp.hasConverged() << ". Fitness score: " << icp.getFitnessScore() << std::endl
-              << std::endl;
+    std::cout << "Converg flag:" << icp.hasConverged() << ". Fitness score: " << icp.getFitnessScore() << std::endl;
 
     // if (icp.hasConverged() == false || icp.getFitnessScore() > historyKeyframeFitnessScore)
     //  return;
@@ -1435,6 +1434,7 @@ void mapOptimization::ICPscanMatchGlobal()
     // publish global map
     publishCloud(&pubMapWorld, cloudGlobalMapDS, timeLaserInfoStamp, "map"); // publish world map
 
+    // publish the trsformation between map and odom
     if (icp.hasConverged() == true && icp.getFitnessScore() < historyKeyframeFitnessScore)
     {
         geometry_msgs::PoseStamped pose_odomTo_map;
@@ -1451,11 +1451,10 @@ void mapOptimization::ICPscanMatchGlobal()
         pose_odomTo_map.pose.orientation.w = q_odomTo_map.w();
         pubOdomToMapPose.publish(pose_odomTo_map);
     }
-    // publish the trsformation between map and odom
 }
 
 // 全局定位方法2：
-// 点云匹配方法：ICP
+// 点云匹配方法：NDT & ICP
 // 点云匹配对象：最近的关键帧 -> 全局地图中提取局部地图
 void mapOptimization::ICPscanMatchLocal()
 {
@@ -1466,7 +1465,7 @@ void mapOptimization::ICPscanMatchLocal()
     int latestFrameIDGlobalLocalize;
     latestFrameIDGlobalLocalize = win_cloudKeyPoses3D.size() - 1;
 
-    PointType pose;
+    PointType pose;     // use to extract local map
     pose.x = win_cloudKeyPoses3D[latestFrameIDGlobalLocalize].x;
     pose.y = win_cloudKeyPoses3D[latestFrameIDGlobalLocalize].y;
     pose.z = win_cloudKeyPoses3D[latestFrameIDGlobalLocalize].z;
@@ -1477,9 +1476,12 @@ void mapOptimization::ICPscanMatchLocal()
     std::cout << "the size of input cloud: " << latestCloudIn->points.size() << std::endl;
     mtxWin.unlock();
 
-    // 提取局部地图
+    // extract local map(yabao)
     pcl::PointCloud<PointType>::Ptr cloudLocalMap(new pcl::PointCloud<PointType>());
+    pcl::PointCloud<PointType>::Ptr cloudLocalMapDS(new pcl::PointCloud<PointType>());
     map->extractSurroundingKeyFrames(cloudLocalMap, pose);
+    downSizeFilterICP.setInputCloud(cloudLocalMap);
+    downSizeFilterICP.filter(*cloudLocalMapDS);
 
     pcl::NormalDistributionsTransform<PointType, PointType> ndt;
     ndt.setTransformationEpsilon(0.01);
@@ -1503,17 +1505,16 @@ void mapOptimization::ICPscanMatchLocal()
     // std::cout << "matricInitGuess: " << matricInitGuess << std::endl;
     // Firstly perform ndt in coarse resolution
     ndt.setInputSource(latestCloudIn);
-    ndt.setInputTarget(cloudLocalMap);
+    ndt.setInputTarget(cloudLocalMapDS);
     pcl::PointCloud<PointType>::Ptr unused_result_0(new pcl::PointCloud<PointType>());
     ndt.align(*unused_result_0, matricInitGuess);
     // use the outcome of ndt as the initial guess for ICP
     icp.setInputSource(latestCloudIn);
-    icp.setInputTarget(cloudLocalMap);
+    icp.setInputTarget(cloudLocalMapDS);
     pcl::PointCloud<PointType>::Ptr unused_result(new pcl::PointCloud<PointType>());
     icp.align(*unused_result, ndt.getFinalTransformation());
 
-    std::cout << "converg flag:" << icp.hasConverged() << ". Fitness score: " << icp.getFitnessScore() << std::endl
-              << std::endl;
+    std::cout << "Converg flag:" << icp.hasConverged() << ". Fitness score: " << icp.getFitnessScore() << std::endl;
 
     // if (icp.hasConverged() == false || icp.getFitnessScore() > historyKeyframeFitnessScore)
     //  return;
@@ -1536,8 +1537,9 @@ void mapOptimization::ICPscanMatchLocal()
     // publish the laserpointcloud in world frame
     
     //publishCloud(&pubMapWorld, cloudGlobalMapDS, timeLaserInfoStamp, "map"); // publish global map
-    publishCloud(&pubMapWorld, cloudLocalMap, timeLaserInfoStamp, "map");   // publish local map
+    publishCloud(&pubMapWorld, cloudLocalMapDS, timeLaserInfoStamp, "map");   // publish local map
 
+    // publish the trsformation between map and odom
     if (icp.hasConverged() == true && icp.getFitnessScore() < historyKeyframeFitnessScore)
     {
         geometry_msgs::PoseStamped pose_odomTo_map;
@@ -1553,8 +1555,7 @@ void mapOptimization::ICPscanMatchLocal()
         pose_odomTo_map.pose.orientation.z = q_odomTo_map.z();
         pose_odomTo_map.pose.orientation.w = q_odomTo_map.w();
         pubOdomToMapPose.publish(pose_odomTo_map);
-    }
-    // publish the trsformation between map and odom
+    } 
 }
 
 void mapOptimization::initialpose_callback(const geometry_msgs::PoseWithCovarianceStampedConstPtr &pose_msg)
@@ -1988,6 +1989,7 @@ void mapOptimization::loopFindNearKeyframesByPose(pcl::PointCloud<PointType>::Pt
     *nearKeyframes = *cloud_temp;
 }
 
+// TODO:试一下全局定位中的方法，先NDT，再ICP
 int mapOptimization::refineRelocateResult()
 {
     // extract cloud
