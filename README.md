@@ -16,6 +16,11 @@ A video of this project can be found on [YouTube](https://youtu.be/ZFumQSqMsE0).
 ## Dependency
 The dependency of this repo is same as the official [LVI-SAM](https://github.com/TixiaoShan/LVI-SAM). So if you occur a compile problem, we recommend you to compile the official LVI-SAM firstly. Right now we have only tested on Ubuntu 18.04 + ROS melodic environment.
 
+In particular, this ropo relies on **jsk-rviz-plugins** to display text on rviz, so remember to install it.
+```
+sudo apt-get install ros-melodic-jsk-rviz-plugins
+```
+
 ## Compile
 You can use the following commands to download and compile the package.
 ```

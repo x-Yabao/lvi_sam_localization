@@ -17,4 +17,4 @@ DENSE_DIS: 20          # 判定为密集空间需要的距离
 DENSE_RATIO: 0.40       # 判定为密集空间需要点的百分比
 OPEN_DIS: 40            # 判定为开阔空间需要的距离
 OPEN_RATIO: 0.80        # 判定为开阔空间需要点的百分比
-USE_TUNNING: 1          # 是否使用新参数
+USE_TUNNING: 0          # 是否使用新参数
