@@ -1010,25 +1010,34 @@ void mapOptimization::publishFrames()
         *cloudOut += *transformPointCloud(laserCloudSurfLastDS, &thisPose6D);
         publishCloud(&pubRecentKeyFrame, cloudOut, timeLaserInfoStamp, "odom");
     }
-    // added *****************by gc
+
+    // added by gc, yabao change
+    PointTypePose thisPose6DInOdom = trans2PointTypePose(transformTobeMapped);
+    Eigen::Affine3f T_thisPose6DInOdom = pclPointToAffine3f(thisPose6DInOdom);
+    mtxtranformOdomToWorld.lock();
+    PointTypePose pose_Odom_Map = trans2PointTypePose(tranformOdomToWorld);
+    mtxtranformOdomToWorld.unlock();
+    Eigen::Affine3f T_pose_Odom_Map = pclPointToAffine3f(pose_Odom_Map);
+    Eigen::Affine3f T_poseInMap = T_pose_Odom_Map * T_thisPose6DInOdom;
+
+    // save trajectory(LIDAR freq)
+    Eigen::Vector3d tmp_T = T_poseInMap.translation().cast<double>();
+    Eigen::Matrix3d tmp_R = T_poseInMap.rotation().cast<double>();
+    traj_Ts.push_back(tmp_T);
+    traj_Rs.push_back(tmp_R);
+    traj_timestamps.push_back(timeLaserCloudInfoLast);
+
     if (pubLaserCloudInWorld.getNumSubscribers() != 0)
     {
         pcl::PointCloud<PointType>::Ptr cloudInBase(new pcl::PointCloud<PointType>());
         pcl::PointCloud<PointType>::Ptr cloudOutInWorld(new pcl::PointCloud<PointType>());
-        PointTypePose thisPose6DInOdom = trans2PointTypePose(transformTobeMapped);
-        Eigen::Affine3f T_thisPose6DInOdom = pclPointToAffine3f(thisPose6DInOdom);
-        mtxtranformOdomToWorld.lock();
-        PointTypePose pose_Odom_Map = trans2PointTypePose(tranformOdomToWorld);
-        mtxtranformOdomToWorld.unlock();
-        Eigen::Affine3f T_pose_Odom_Map = pclPointToAffine3f(pose_Odom_Map);
 
-        Eigen::Affine3f T_poseInMap = T_pose_Odom_Map * T_thisPose6DInOdom;
         *cloudInBase += *laserCloudCornerLastDS;
         *cloudInBase += *laserCloudSurfLastDS;
         pcl::transformPointCloud(*cloudInBase, *cloudOutInWorld, T_poseInMap.matrix());
         publishCloud(&pubLaserCloudInWorld, cloudOutInWorld, timeLaserInfoStamp, "map");
     }
-    // added *********************by gc
+    // added by gc
 
     // publish registered high-res raw cloud
     if (pubCloudRegisteredRaw.getNumSubscribers() != 0)
@@ -1088,6 +1097,9 @@ void mapOptimization::globalLocalizeThread()
             static double sum = 0;
             ros::Duration(5.0).sleep();         // 并非频率越高越好
 
+            if(USE_TUNNING)
+                updateParameters();
+
             double t_start = ros::Time::now().toSec();
             //ICPscanMatchGlobal();
             ICPscanMatchLocal();            // yabao
@@ -1102,6 +1114,11 @@ void mapOptimization::globalLocalizeThread()
 
         // rate.sleep();
     }
+
+    // 当ros被杀死之后
+    saveTrajectory();
+
+
 }
 
 void mapOptimization::ICPLocalizeInitialize()
@@ -1450,6 +1467,7 @@ void mapOptimization::ICPscanMatchGlobal()
         pose_odomTo_map.pose.orientation.z = q_odomTo_map.z();
         pose_odomTo_map.pose.orientation.w = q_odomTo_map.w();
         pubOdomToMapPose.publish(pose_odomTo_map);
+
     }
 }
 
@@ -1465,10 +1483,8 @@ void mapOptimization::ICPscanMatchLocal()
     int latestFrameIDGlobalLocalize;
     latestFrameIDGlobalLocalize = win_cloudKeyPoses3D.size() - 1;
 
-    PointType pose;     // use to extract local map
-    pose.x = win_cloudKeyPoses3D[latestFrameIDGlobalLocalize].x;
-    pose.y = win_cloudKeyPoses3D[latestFrameIDGlobalLocalize].y;
-    pose.z = win_cloudKeyPoses3D[latestFrameIDGlobalLocalize].z;
+    // use to extract local map, yabao
+    PointTypePose thisPose6DInOdom = win_cloudKeyPoses6D[latestFrameIDGlobalLocalize];
 
     pcl::PointCloud<PointType>::Ptr latestCloudIn(new pcl::PointCloud<PointType>());
     *latestCloudIn += *transformPointCloud(win_cornerCloudKeyFrames[latestFrameIDGlobalLocalize], &win_cloudKeyPoses6D[latestFrameIDGlobalLocalize]);
@@ -1479,6 +1495,19 @@ void mapOptimization::ICPscanMatchLocal()
     // extract local map(yabao)
     pcl::PointCloud<PointType>::Ptr cloudLocalMap(new pcl::PointCloud<PointType>());
     pcl::PointCloud<PointType>::Ptr cloudLocalMapDS(new pcl::PointCloud<PointType>());
+    
+    PointType pose;     // pose为全局地图下的
+    Eigen::Affine3f T_thisPose6DInOdom = pclPointToAffine3f(thisPose6DInOdom);
+    mtxtranformOdomToWorld.lock();
+    PointTypePose pose_Odom_Map = trans2PointTypePose(tranformOdomToWorld);
+    mtxtranformOdomToWorld.unlock();
+    Eigen::Affine3f T_pose_Odom_Map = pclPointToAffine3f(pose_Odom_Map);
+    Eigen::Affine3f T_poseInMap = T_pose_Odom_Map * T_thisPose6DInOdom;
+    Eigen::Vector3f tmp_T = T_poseInMap.translation();
+    pose.x = tmp_T(0);
+    pose.y = tmp_T(1);
+    pose.z = tmp_T(2);
+
     map->extractSurroundingKeyFrames(cloudLocalMap, pose);
     downSizeFilterICP.setInputCloud(cloudLocalMap);
     downSizeFilterICP.filter(*cloudLocalMapDS);
@@ -2128,4 +2157,30 @@ int mapOptimization::refineRelocateResult()
     }
 
     return 0;
+}
+
+void mapOptimization::updateParameters()
+{
+    nh.param<float>("surroundingKeyframeSearchRadius", surroundingKeyframeSearchRadius, 50.0);
+    ROS_INFO("now surroundingKeyframeSearchRadius is: %f", surroundingKeyframeSearchRadius);
+}
+
+void mapOptimization::saveTrajectory()
+{
+    // 执行保存轨迹功能(LiDAR freq)
+    std::cout << "Saving the LiDAR frequency trajectory now!" << std::endl;
+    std::string filename("/home/yabao/trajectory_lidar.txt");
+    std::ofstream traj_file;
+    traj_file.open(filename.c_str());
+    traj_file << fixed;
+
+    for (int i = 0; i < traj_timestamps.size(); i++)
+    {
+        Eigen::Quaterniond q(traj_Rs[i]);
+        traj_file << traj_timestamps[i] << " " << setprecision(7) << 
+        traj_Ts[i](0) << " " << traj_Ts[i](1) << " " << traj_Ts[i](2) << " " << 
+        q.x() << " " << q.y() << " " << q.z() << " " << q.w() << std::endl;
+    }
+    traj_file.close();
+    std::cout << "Saving the LiDAR frequency trajectory finish!" << "Size is: " << traj_timestamps.size() << "." << std::endl;
 }

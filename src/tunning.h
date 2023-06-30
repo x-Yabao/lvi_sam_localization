@@ -15,6 +15,8 @@ public:
     void tunningRule_1(); 
     void tunningRule_2();
 
+    void tunningThread();
+
 private:
     ros::NodeHandle nh;
     ros::Subscriber subEnvDensityInfo;

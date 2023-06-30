@@ -7,6 +7,6 @@
     <node pkg="$(arg project)" type="featureExtractionNode" name="featureExtractionNode" output="screen" respawn="true"/>
     <node pkg="$(arg project)" type="globalLocalizationNode" name="mapOptmizationNode" output="screen" respawn="true"/>
 
-    <!-- <node pkg="$(arg project)" type="tunningNode" name="tunningNode" output="screen" respawn="true"/> -->
+    <node pkg="$(arg project)" type="tunningNode" name="tunningNode" output="screen" respawn="true"/>
     
 </launch>

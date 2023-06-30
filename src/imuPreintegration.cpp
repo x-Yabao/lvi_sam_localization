@@ -368,7 +368,9 @@ void IMUPreintegration::imuHandler(const sensor_msgs::Imu::ConstPtr& imu_raw)
 
     //  yabao
     tf::Transform baseToWorld;
-    baseToWorld =  map_to_odom.inverse() * tCur;
+    //baseToWorld =  map_to_odom.inverse() * tCur;
+    baseToWorld =  map_to_odom * tCur;
+
 
     tf::Vector3 vec_tf = baseToWorld.getOrigin();
     tf::Quaternion quad_tf = baseToWorld.getRotation();
@@ -394,7 +396,7 @@ void IMUPreintegration::saveInformationThread()
 
     // 当ros被杀死之后
     // 执行保存轨迹功能(imu freq)
-    std::cout << "Saving the trajectory now!" << std::endl;
+    std::cout << "Saving the imu frequency trajectory now!" << std::endl;
     std::string filename("/home/yabao/trajectory_imu.txt");
     std::ofstream traj_file;
     traj_file.open(filename.c_str());
@@ -407,6 +409,6 @@ void IMUPreintegration::saveInformationThread()
         traj_Rs[i].x() << " " << traj_Rs[i].y() << " " << traj_Rs[i].z() << " " << traj_Rs[i].w() << std::endl;
     }
     traj_file.close();
-    std::cout << "Saving the trajectory finish!" << "Size is: " << traj_timestamps.size() << "." << std::endl;
+    std::cout << "Saving the imu frequency trajectory finish!" << "Size is: " << traj_timestamps.size() << "." << std::endl;
 }
 

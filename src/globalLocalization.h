@@ -100,6 +100,9 @@ private:
     // 重定位初始化
     void relocateInitialize();
 
+    void updateParameters();
+    void saveTrajectory();
+
 public:
     // gtsam
     NonlinearFactorGraph gtSAMgraph;
@@ -265,5 +268,9 @@ public:
     
     pcl::KdTreeFLANN<PointType>::Ptr kdtreeLidarKeyPoses;
 
+    // trajectory int built map (LiDAR freq)
+    std::vector<double> traj_timestamps;
+    std::vector<Eigen::Vector3d> traj_Ts;
+    std::vector<Eigen::Matrix3d> traj_Rs;
     
 };
