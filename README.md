@@ -75,5 +75,6 @@ rosbag play your-bag.bag
 
 ## TODO
 + [ ] Preprocess the built map and cut it into squares. Global localization extracts squares instead of keyframes when extracting local maps.
++ [ ] Try to use my own implementation of icp and ndt.
 
 
